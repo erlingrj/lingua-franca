@@ -237,5 +237,10 @@ public class AttributeSpec {
                 new AttrParamSpec(
                     AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, false))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
+
+    // Chisel attributes
+    // @physical
+    ATTRIBUTE_SPECS_BY_NAME.put("external", new AttributeSpec(null));
+    ATTRIBUTE_SPECS_BY_NAME.put("bram", new AttributeSpec(null));
   }
 }

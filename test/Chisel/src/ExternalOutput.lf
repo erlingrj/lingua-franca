@@ -1,0 +1,18 @@
+target Chisel {
+    timeout: 1 msec
+}
+
+reactor Blinky {
+    @external
+    output out: {=Bool()=}
+    timer t(0, 100 usec)
+
+    reaction(t) -> out {=
+        lf_set(out, ~lf_get(out))
+    =}
+
+}
+
+main reactor {
+    blinky = new Blinky()
+}

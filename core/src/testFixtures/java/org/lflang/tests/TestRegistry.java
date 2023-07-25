@@ -61,87 +61,6 @@ public class TestRegistry {
    */
   private final TestMap ignored = new TestMap();
 
-  /**
-   * A map from each test category to a set of tests that is the union of all registered tests in
-   * that category across all targets.
-   */
-  protected static final Map<TestCategory, Set<LFTest>> allTargets = new HashMap<>();
-
-  /**
-   * Enumeration of test categories, used to map tests to categories. The nearest containing
-   * directory that matches any of the categories will determine the category that the test is
-   * mapped to. Matching is case insensitive.
-   *
-   * <p>For example, the following files will all map to THREADED:
-   *
-   * <ul>
-   *   <li>C/threaded/Foo.lf
-   *   <li>C/THREADED/Foo.lf
-   *   <li>C/Threaded/Foo.lf
-   *   <li>C/foo/threaded/Bar.lf
-   *   <li>C/foo/bar/threaded/Threaded.lf
-   *   <li>C/federated/threaded/bar.lf but the following will not:
-   *   <li>C/Foo.lf (maps to COMMON)
-   *   <li>C/Threaded.lf (maps to COMMON)
-   *   <li>C/threaded/federated/foo.lf (maps to FEDERATED)
-   * </ul>
-   *
-   * @author Marten Lohstroh
-   */
-  public enum TestCategory {
-    /** Tests about concurrent execution. */
-    CONCURRENT(true),
-    /** Test about enclaves */
-    ENCLAVE(false),
-    /** Basic tests, i.e., tests that all targets are supposed to implement. */
-    BASIC(true),
-    /** Tests about generics. */
-    GENERICS(true),
-    /** Tests about multiports and banks of reactors. */
-    MULTIPORT(true),
-    /** Tests about federated execution. */
-    FEDERATED(true),
-    /** Tests about specific target properties. */
-    PROPERTIES(true),
-    /** Tests concerning modal reactors */
-    MODAL_MODELS(true),
-    NO_INLINING(false),
-    // non-shared tests
-    DOCKER(true),
-    DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
-    SERIALIZATION(false),
-    ARDUINO(false, TestLevel.BUILD),
-    ZEPHYR(false, TestLevel.BUILD),
-
-    CHISEL(false),
-    TARGET(false);
-
-    /** Whether we should compare coverage against other targets. */
-    public final boolean isCommon;
-
-    public final String path;
-    public final TestLevel level;
-
-    /** Create a new test category. */
-    TestCategory(boolean isCommon) {
-      this.isCommon = isCommon;
-      this.path = this.name().toLowerCase();
-      this.level = TestLevel.EXECUTION;
-    }
-
-    /** Create a new test category. */
-    TestCategory(boolean isCommon, TestLevel level) {
-      this.isCommon = isCommon;
-      this.path = this.name().toLowerCase();
-      this.level = level;
-    }
-
-    /** Create a new test category. */
-    TestCategory(boolean isCommon, String path) {
-      this.isCommon = isCommon;
-      this.path = path;
-      this.level = TestLevel.EXECUTION;
-    }
   private final Map<TestCategory, Set<LFTest>> allTargets = new EnumMap<>(TestCategory.class);
 
   @Inject private LFResourceProvider resourceProvider;
@@ -445,3 +364,4 @@ public class TestRegistry {
     }
   }
 }
+

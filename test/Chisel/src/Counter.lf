@@ -2,7 +2,7 @@ target Chisel {
     timeout: 10 msec
 }
 
-reactor Counter {
+main reactor {
     timer t(0, 1 msec)
 
     state cnt:{=UInt(8.W)=}

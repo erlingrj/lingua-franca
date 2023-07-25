@@ -38,6 +38,8 @@ import org.lflang.lf.*
 // reaction(childReactor.out) {==} should reference the `out` port with `childReactor.out`. So some tricks are needed.
 class ReactionInfo {
     val portInputs = mutableListOf<Port>()
+    val portExternalInputs = mutableListOf<Port>()
+    val portExternalOutputs= mutableListOf<Port>()
     val portOutputs = mutableListOf<Port>()
     val timerInputs = mutableListOf<Timer>()
     val builtinInputs = mutableListOf<BuiltinTriggerRef>()
@@ -130,6 +132,18 @@ class ChiselReactionGenerator(
         return "val ${p.getName} = new EventReadMaster(${p.getDataType}, ${p.getTokenType})"
     }
 
+    private fun generateExternalInputPortIO(r: Reaction, p: Port): String {
+        val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
+        rInfo.portExternalInputs.add(p)
+        return "val ${p.getName} = Input(${p.getDataType})"
+    }
+
+    private fun generateExternalOutputPortIO(r: Reaction, p: Port): String {
+        val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
+        rInfo.portExternalOutputs.add(p)
+        return "val ${p.getName} = new StateReadWriteMaster(${p.getDataType}, ${p.getTokenType})"
+    }
+
     private fun generateOutputPortIO(r: Reaction, p: Port): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         rInfo.portOutputs.add(p)
@@ -155,30 +169,62 @@ class ChiselReactionGenerator(
             return ""
         }
     }
+    private fun getNormalInputs(inputs: List<TriggerRef>): List<VarRef> = inputs.filter{it is VarRef}.map{it as VarRef}
+        .filterNot{it.container is Instantiation}
+        .filter{it.variable is Port}
+        .filterNot{(it.variable as Port).isExternal}
+
+    private fun getExternalInputs(inputs: List<TriggerRef>): List<VarRef> = inputs.filter{it is VarRef}.map{it as VarRef}
+        .filterNot{it.container is Instantiation}
+        .filter{it.variable is Port}
+        .filter{(it.variable as Port).isExternal}
+
+    private fun getInputsFromChild(inputs: List<TriggerRef>): List<VarRef> = inputs.filter{it is VarRef}.map{it as VarRef}
+        .filter{it.container is Instantiation}
+        .filter{it.variable is Port}
+
+    private fun getNormalOutputs(outputs: List<VarRef>): List<VarRef> = outputs.filterNot{it.container is Instantiation}
+        .filter{it.variable is Port}
+        .filterNot{(it.variable as Port).isExternal}
+
+    private fun getExternalOutputs(outputs: List<VarRef>): List<VarRef> = outputs.filterNot{it.container is Instantiation}
+        .filter{it.variable is Port}
+        .filter{(it.variable as Port).isExternal}
+
+    private fun getOutputsFromChild(inputs: List<VarRef>): List<VarRef> = inputs
+        .filter{it.container is Instantiation}
+        .filter{it.variable is Port}
+
+    private fun getBuiltinInputs(inputs: List<TriggerRef>): List<BuiltinTriggerRef> = inputs.filter{it is BuiltinTriggerRef}.map{it as BuiltinTriggerRef}
 
     private fun generatePortTriggerIOs(r: Reaction): String =
-        r.triggers.filter { it is VarRef }.map { it as VarRef }.filterNot { it.container is Instantiation }.map { it.variable }
-            .filterIsInstance<Port>().joinToString(separator = "\n", postfix = "\n") { generateInputPortIO(r, it)} +
-        r.triggers.filter{it is VarRef}.map{it as VarRef}.filter{it.container is Instantiation}.filter{it.variable is Port}.joinToString(separator = "\n", prefix = "// Port Triggers \n", postfix = "\n") {
+        getNormalInputs(r.triggers).joinToString(separator = "\n", postfix = "\n") { generateInputPortIO(r, it.variable as Port)} +
+        getInputsFromChild(r.triggers).joinToString(separator = "\n", prefix = "// Port Triggers \n", postfix = "\n") {
             generateInputPortFromChildIO(r, it.container as Instantiation, it.variable as Port) }
 
     private fun generateBuiltinTriggerIOs(r: Reaction): String =
-        r.triggers.filter{it is BuiltinTriggerRef}.map{it as BuiltinTriggerRef}.joinToString(separator = "\n", prefix = "// Builtin triggers\n", postfix = "\n") { generateBuiltinTriggerIO(r, it) }
+        getBuiltinInputs(r.triggers).joinToString(separator = "\n", prefix = "// Builtin triggers\n", postfix = "\n") { generateBuiltinTriggerIO(r, it) }
 
     private fun generateSourceIOs(r: Reaction): String =
-        r.sources.filter{it is VarRef}.map{it as VarRef}.filterNot{it.container is Instantiation}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Port Sources \n", postfix = "\n") { generateInputPortIO(r, it) } +
-        r.sources.filter{it is VarRef}.map{it as VarRef}.filter{it.container is Instantiation}.filter {it.variable is Port}.joinToString(separator = "\n", postfix = "\n") {
+        getNormalInputs(r.sources).joinToString(separator = "\n", prefix = "// Port Sources \n", postfix = "\n") { generateInputPortIO(r, it.variable as Port) } +
+        getInputsFromChild(r.sources).joinToString(separator = "\n", postfix = "\n") {
             generateInputPortFromChildIO(r, it.container as Instantiation, it.variable as Port)
         }
 
     private fun generateEffectIOs(r: Reaction): String =
-        r.effects.filter{it is VarRef}.map{it as VarRef}.filterNot{it.container is Instantiation}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Port Effects \n", postfix = "\n") { generateOutputPortIO(r, it) } +
-        r.effects.filter{it is VarRef}.map{it as VarRef}.filter{it.container is Instantiation}.filter {it.variable is Port}.joinToString(separator = "\n", postfix = "\n") {
+        getNormalOutputs(r.effects).joinToString(separator = "\n", prefix = "// Port Effects \n", postfix = "\n") { generateOutputPortIO(r, it.variable as Port) } +
+        getOutputsFromChild(r.effects).joinToString(separator = "\n", postfix = "\n") {
             generateOutputPortToChildIO(r, it.container as Instantiation, it.variable as Port)
         }
 
     private fun generateTimerIOs(r: Reaction): String =
         r.triggers.filter{it is VarRef}.map{it as VarRef}.map{it.variable}.filterIsInstance<Timer>().joinToString(separator = "\n", prefix = "// Timers \n", postfix = "\n") { generateTimerIO(r, it) }
+
+    private fun generateExternalInputIOs(r: Reaction): String =
+        getExternalInputs(r.sources).joinToString(separator = "\n", prefix = "// External inputs\n",postfix = "\n") { generateExternalInputPortIO(r, it.variable as Port)}
+
+    private fun generateExternalOutputIOs(r: Reaction): String =
+        getExternalOutputs(r.effects).joinToString(separator = "\n", prefix = "// External outputs\n", postfix = "\n") { generateExternalOutputPortIO(r, it.variable as Port)}
 
     private fun generateReactionIOClass(r: Reaction): String = with(PrependOperator) {
         """
@@ -189,13 +235,17 @@ class ChiselReactionGenerator(
          ${"|  "..generateEffectIOs(r)}
          ${"|  "..generateTimerIOs(r)}
          ${"|  "..generateBuiltinTriggerIOs(r)}
+         ${"|  "..generateExternalInputIOs(r)}
+         ${"|  "..generateExternalOutputIOs(r)}
             |}
             |
         """.trimMargin()
     }
 
     private fun generateReactionIODefinition(r: Reaction): String =
-        "val io = IO(new ${r.getIOClassName})\n"
+        """
+           val io = IO(new ${r.getIOClassName})
+        """.trimIndent()
 
     private fun generatePortSeqs(r: Reaction): String =
         """
@@ -221,7 +271,7 @@ class ChiselReactionGenerator(
 
     private fun generateIOInScope(r: Reaction): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
-        return (rInfo.portInputs + rInfo.portOutputs + rInfo.timerInputs).joinToString(separator = "\n", prefix = "// Bring IO into scope \n", postfix = "\n")
+        return (rInfo.portInputs + rInfo.portOutputs + rInfo.timerInputs + rInfo.portExternalInputs + rInfo.portExternalOutputs).joinToString(separator = "\n", prefix = "// Bring IO into scope \n", postfix = "\n")
             { "val ${it.name} = io.${it.name}" } +
                 rInfo.builtinInputs.joinToString(separator = "\n", postfix = "\n") {"val ${it.name} = io.${it.name}"} +
             generatePortsFromChildrenInScope(r) +
@@ -260,16 +310,9 @@ class ChiselReactionGenerator(
             "val ${it.name} = new StateReadWriteMaster(${it.getDataType}, ${it.getTokenType})"
         }
 
-        val stateDriveDefs = reactor.stateVars.joinToString("\n") {
-            "${it.name}.driveDefaults()"
-        }
-
         return """
             class StateIO extends ReactionStateIO {
                 ${states}
-                override def driveDefaults(): Unit = {
-                    ${stateDriveDefs}
-                }
             }
         """.trimIndent()
     }

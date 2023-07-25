@@ -26,6 +26,7 @@
 package org.lflang.generator.chisel
 
 import org.lflang.*
+import org.lflang.AttributeUtils.findAttributeByName
 import org.lflang.lf.*
 
 val Port.getDataType: String
@@ -185,6 +186,11 @@ val Port.getConnectionFactory: String
 val Port.getInwardConnectionFactory: String
     get() = "new SingleValueInputPortInwardConnectionFactory(${getDataType})"
 
+val Port.isExternal: Boolean
+    get() = findAttributeByName(this, "external") != null
+
+val Port.getExternalOutputLatchName: String
+    get() = "_${this.name}Latch"
 fun getPortName(port: VarRef): String {
     if (port.container is Instantiation) {
         return getChildPortName(port.container, port.variable as Port)

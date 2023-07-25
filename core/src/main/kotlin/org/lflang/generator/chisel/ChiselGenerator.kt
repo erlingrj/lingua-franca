@@ -33,6 +33,7 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.Reactor
+import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
@@ -49,17 +50,13 @@ class ChiselGenerator (val context: LFGeneratorContext,
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
         val scalaSrcGenPath = fileConfig.srcGenPath.resolve("src/main/scala/")
-        var mainReactor: Reactor = reactors.get(0)
+        var mainReactor: Reactor = mainDef.reactor
         for (r in reactors) {
             val generator = ChiselReactorGenerator(r, fileConfig, messageReporter)
             val sourceFile = fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             codeMaps[scalaSrcGenPath.resolve(sourceFile)] = reactorCodeMap
             FileUtil.writeToFile(reactorCodeMap.generatedCode, scalaSrcGenPath.resolve(sourceFile), true)
-
-            if (r.isMain) {
-                mainReactor = r
-            }
         }
 
         // Generate the Main.scala file

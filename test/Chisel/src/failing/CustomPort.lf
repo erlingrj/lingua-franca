@@ -1,0 +1,39 @@
+target Chisel {
+    timeout: 1 msec
+};
+
+preamble {=
+    class MyBundle extends Bundle {
+        val a = UInt(8.W)
+        val b = UInt(4.W)
+    }
+=}
+
+reactor Source {
+    output out:{=new MyBundle =}
+
+    reaction(startup) -> out {=
+        val outputVal = Wire(new MyBundle())
+        outputVal.a := 42.u
+        outputVal.b := 4.U
+
+        lf_set(out, outputVal)
+    =}
+}
+
+reactor Sink {
+    input in: {=new MyBundle=}
+
+    reaction(in) {=
+        val inputVal = lf_get(in)
+        printf("Received {%d, %d} @ %d\n", inputVal.a, inputVal.b, lf_time_logical())
+    =}
+}
+
+main reactor {
+    src = new Source()
+    sink = new Sink()
+
+    src.out -> sink.in
+}
+
