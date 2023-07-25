@@ -1,0 +1,36 @@
+target Chisel {
+    timeout: 10 usec
+}
+
+
+reactor Source {
+    output out: {=Bool()=}
+    timer t(0, 1 usec)
+
+    reaction(t) -> out {==}
+}
+
+
+reactor Sink {
+    input in: {=Bool()=}
+
+    timer t(0, 1 usec)
+
+    state cnt:{=UInt(8.W)=}
+
+    reaction(in, t) {=
+        lf_write(cnt, lf_read(cnt) + 1.U)
+        printf("triggered\n")
+    =}
+
+    reaction(shutdown) {=
+        assert(lf_read(cnt) === 11.U)
+    =}
+}
+
+main reactor {
+    src =  new Source()
+    sink = new Sink()
+
+    src.out -> sink.in
+}
