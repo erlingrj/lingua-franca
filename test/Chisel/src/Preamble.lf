@@ -12,3 +12,6 @@ reactor WithPreamble {
     =}
 }
 
+main reactor {
+    w = new WithPreamble()
+}

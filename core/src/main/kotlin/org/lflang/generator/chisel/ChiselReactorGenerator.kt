@@ -26,7 +26,7 @@
 
 package org.lflang.generator.chisel
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Input
 import org.lflang.lf.Output
@@ -35,10 +35,10 @@ import org.lflang.lf.Reactor
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
-class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFileConfig, errorReporter: ErrorReporter) {
+class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFileConfig, messageReporter: MessageReporter) {
 
     private val states = ChiselStateGenerator(reactor)
-    private val instances = ChiselInstanceGenerator(reactor, fileConfig, errorReporter)
+    private val instances = ChiselInstanceGenerator(reactor, fileConfig, messageReporter)
     private val timers = ChiselTimerGenerator(reactor)
     private val triggers = ChiselTriggerGenerator(reactor)
     private val reactions = ChiselReactionGenerator(reactor)

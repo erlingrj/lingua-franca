@@ -1,9 +1,10 @@
 package org.lflang.generator.chisel
 
-import org.lflang.ErrorReporter
+import com.google.inject.spi.Message
+import org.lflang.MessageReporter
 import org.lflang.lf.Reactor
 
-class ChiselSbtGenerator(private val mainReactor: Reactor, fileConfig: ChiselFileConfig, errorReporter: ErrorReporter) {
+class ChiselSbtGenerator(private val mainReactor: Reactor, fileConfig: ChiselFileConfig, messageReporter: MessageReporter) {
 
     fun generateSource() =
         """

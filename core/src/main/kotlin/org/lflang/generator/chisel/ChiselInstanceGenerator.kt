@@ -28,17 +28,14 @@
 package org.lflang.generator.chisel
 
 import org.lflang.*
-import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.name
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
-import org.lflang.validation.AttributeSpec
 
 /** A code generator for reactor instances */
 class ChiselInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: ChiselFileConfig,
-    private val errorReporter: ErrorReporter
+    private val messageReporter: MessageReporter
 ) {
     private fun generateDeclaration(inst: Instantiation): String =
         """

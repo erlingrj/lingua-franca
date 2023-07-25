@@ -31,14 +31,11 @@ import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
-import org.eclipse.xtext.testing.InjectWith;
-import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.DefaultErrorReporter;
+import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
@@ -55,18 +52,19 @@ import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
- * Base class for test classes that define JUnit tests.
+ * Base class for test classes that define tests that parse and build LF files from the {@link
+ * TestRegistry}.
  *
  * @author Marten Lohstroh
  */
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
-public abstract class TestBase {
+public abstract class TestBase extends LfInjectedTestBase {
 
   @Inject IResourceValidator validator;
   @Inject LFGenerator generator;
   @Inject JavaIoFileSystemAccess fileAccess;
   @Inject Provider<ResourceSet> resourceSetProvider;
+
+  @Inject TestRegistry testRegistry;
 
   /** Reference to System.out. */
   private static final PrintStream out = System.out;
@@ -159,6 +157,7 @@ public abstract class TestBase {
     public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
+    public static final String DESC_VERIFIER = "Run verifier tests.";
 
     /* Missing dependency messages */
     public static final String MISSING_DOCKER =
@@ -175,7 +174,6 @@ public abstract class TestBase {
   protected TestBase(List<Target> targets) {
     assertFalse(targets.isEmpty(), "empty target list");
     this.targets = Collections.unmodifiableList(targets);
-    TestRegistry.initialize();
   }
 
   /**
@@ -196,13 +194,13 @@ public abstract class TestBase {
     var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
     for (var category : categories) {
       System.out.println(category.getHeader());
-      var tests = TestRegistry.getRegisteredTests(target, category, copy);
+      var tests = testRegistry.getRegisteredTests(target, category, copy);
       try {
         validateAndRun(tests, configurator, level);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
-      System.out.println(TestRegistry.getCoverageReport(target, category));
+      System.out.println(testRegistry.getCoverageReport(target, category));
       checkAndReportFailures(tests);
     }
   }
@@ -429,7 +427,7 @@ public abstract class TestBase {
             props,
             r,
             fileAccess,
-            fileConfig -> new DefaultErrorReporter());
+            fileConfig -> new DefaultMessageReporter());
 
     test.configure(context);
 

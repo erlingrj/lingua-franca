@@ -3,7 +3,7 @@ package org.lflang.federated.generator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Reactor;
@@ -17,16 +17,16 @@ public class FedMainEmitter {
    *
    * @param federate
    * @param originalMainReactor The original main reactor.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    * @return The main reactor.
    */
   String generateMainReactor(
-      FederateInstance federate, Reactor originalMainReactor, ErrorReporter errorReporter) {
+      FederateInstance federate, Reactor originalMainReactor, MessageReporter messageReporter) {
     // FIXME: Handle modes at the top-level
     if (!ASTUtils.allModes(originalMainReactor).isEmpty()) {
-      errorReporter.reportError(
-          ASTUtils.allModes(originalMainReactor).stream().findFirst().get(),
-          "Modes at the top level are not supported under federated execution.");
+      messageReporter
+          .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().get())
+          .error("Modes at the top level are not supported under federated execution.");
     }
     var renderer = FormattingUtil.renderer(federate.targetConfig.target);
 
@@ -37,23 +37,21 @@ public class FedMainEmitter {
                 "\n",
                 renderer.apply(federate.instantiation),
                 ASTUtils.allStateVars(originalMainReactor).stream()
-                    .filter(federate::contains)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allActions(originalMainReactor).stream()
-                    .filter(federate::contains)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allTimers(originalMainReactor).stream()
-                    .filter(federate::contains)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allMethods(originalMainReactor).stream()
-                    .filter(federate::contains)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allReactions(originalMainReactor).stream()
-                    .filter(federate::contains)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")))
             .indent(4)
@@ -72,7 +70,7 @@ public class FedMainEmitter {
       FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
     var paramList =
         ASTUtils.allParameters(originalMainReactor).stream()
-            .filter(federate::contains)
+            .filter(federate::references)
             .map(renderer)
             .collect(Collectors.joining(",", "(", ")"));
     // Empty "()" is currently not allowed by the syntax

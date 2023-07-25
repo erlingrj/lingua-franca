@@ -51,7 +51,7 @@ class ChiselGenerator (val context: LFGeneratorContext,
         val scalaSrcGenPath = fileConfig.srcGenPath.resolve("src/main/scala/")
         var mainReactor: Reactor = reactors.get(0)
         for (r in reactors) {
-            val generator = ChiselReactorGenerator(r, fileConfig, errorReporter)
+            val generator = ChiselReactorGenerator(r, fileConfig, messageReporter)
             val sourceFile = fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             codeMaps[scalaSrcGenPath.resolve(sourceFile)] = reactorCodeMap
@@ -63,11 +63,11 @@ class ChiselGenerator (val context: LFGeneratorContext,
         }
 
         // Generate the Main.scala file
-        val mainFileGenerator = ChiselMainFileGenerator(mainReactor, fileConfig, context.targetConfig, errorReporter)
+        val mainFileGenerator = ChiselMainFileGenerator(mainReactor, fileConfig, context.targetConfig, messageReporter)
         FileUtil.writeToFile(mainFileGenerator.generateSource(), scalaSrcGenPath.resolve("Main.scala"), true)
 
         // Generate the build.sbt file
-        val sbtGenerator = ChiselSbtGenerator(mainReactor, fileConfig, errorReporter)
+        val sbtGenerator = ChiselSbtGenerator(mainReactor, fileConfig, messageReporter)
         FileUtil.writeToFile(sbtGenerator.generateSource(), fileConfig.srcGenPath.resolve("build.sbt"), true)
 
         // Copy reactor-chisel
@@ -86,7 +86,7 @@ class ChiselGenerator (val context: LFGeneratorContext,
         val cmd = commandFactory.createCommand("sbt", listOf("run"), fileConfig.srcGenPath)
         val returnCode = cmd.run()
         if (returnCode != 0) {
-            errorReporter.reportError("`sbt run` failed due to either bug in reaction bodies or reactor-chisel.")
+            messageReporter.nowhere().error("`sbt run` failed due to either bug in reaction bodies or reactor-chisel.")
         }
     }
 

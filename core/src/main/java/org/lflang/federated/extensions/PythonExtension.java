@@ -27,8 +27,8 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -86,7 +86,7 @@ public class PythonExtension extends CExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var result = new CodeBuilder();
 
     // We currently have no way to mark a reaction "unordered"
@@ -95,7 +95,7 @@ public class PythonExtension extends CExtension {
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkSenderBody(
-            sendingPort, receivingPort, connection, type, coordinationType, errorReporter));
+            sendingPort, receivingPort, connection, type, coordinationType, messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }
@@ -108,7 +108,7 @@ public class PythonExtension extends CExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var result = new CodeBuilder();
 
     // We currently have no way to mark a reaction "unordered"
@@ -117,7 +117,13 @@ public class PythonExtension extends CExtension {
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkReceiverBody(
-            action, sendingPort, receivingPort, connection, type, coordinationType, errorReporter));
+            action,
+            sendingPort,
+            receivingPort,
+            connection,
+            type,
+            coordinationType,
+            messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }
@@ -130,7 +136,7 @@ public class PythonExtension extends CExtension {
       InferredType type,
       String receiveRef,
       CodeBuilder result,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     String value = "";
     switch (connection.getSerializer()) {
       case NATIVE:
@@ -138,7 +144,15 @@ public class PythonExtension extends CExtension {
           value = action.getName();
           FedNativePythonSerialization pickler = new FedNativePythonSerialization();
           result.pr(pickler.generateNetworkDeserializerCode(value, null));
-          result.pr("lf_set(" + receiveRef + ", " + FedSerialization.deserializedVarName + ");\n");
+          // Use token to set ports and destructor
+          result.pr(
+              "lf_token_t* token = lf_new_token((void*)"
+                  + receiveRef
+                  + ", "
+                  + FedSerialization.deserializedVarName
+                  + ", 1);\n");
+          result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
+          result.pr("lf_set_token(" + receiveRef + ", token);\n");
           break;
         }
       case PROTO:
@@ -160,7 +174,7 @@ public class PythonExtension extends CExtension {
       CodeBuilder result,
       String sendingFunction,
       String commonArgs,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     String lengthExpression = "";
     String pointerExpression = "";
     switch (connection.getSerializer()) {
@@ -173,6 +187,8 @@ public class PythonExtension extends CExtension {
           result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
           result.pr("size_t message_length = " + lengthExpression + ";");
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+          // Decrease the reference count for serialized_pyobject
+          result.pr("Py_XDECREF(serialized_pyobject);\n");
           break;
         }
       case PROTO:

@@ -1,10 +1,10 @@
 package org.lflang.generator.chisel
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.TargetConfig
 import org.lflang.lf.Reactor
 
-class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: ChiselFileConfig, val targetConfig: TargetConfig, val errorReporter: ErrorReporter) {
+class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: ChiselFileConfig, val targetConfig: TargetConfig, val messageReporter: MessageReporter) {
 
     fun generateSource(): String {
         var timeOut = "Time.NEVER"
