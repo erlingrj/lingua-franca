@@ -1,0 +1,39 @@
+name: Chisel tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  regular-tests:
+    runs-on: self-hosted
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-chisel
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/reactor-cpp
+          path: core/src/main/resources/lib/cpp/reactor-chisel
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
+      - name: Run Chisel tests;
+        run: |
+          ./gradlew targetTest -Ptarget=Chisel
