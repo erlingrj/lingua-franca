@@ -255,17 +255,16 @@ class ChiselReactionGenerator(
 
     private fun generateTriggerSeq(r: Reaction): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
-        return  (rInfo.portInputs).joinToString( ",", "override val triggers = Seq("){ "io.${it.name}"} +
-                (rInfo.timerInputs).joinToString(separator = ",") {"io.${it.name}"} +
-                (rInfo.builtinInputs).joinToString(separator = ",") {"io.${it.name}"} +
-                (rInfo.childReactorInputs).joinToString(separator = ",", postfix = ")") {"io.${getChildPortName(it.second, it.first)}"}
+        val triggers = (rInfo.portInputs.map{"io.${it.name}"}) + rInfo.timerInputs.map{"io.${it.name}"} + rInfo.builtinInputs.map{"io.${it.name}"} + rInfo.childReactorInputs.map {"io.${getChildPortName(it.second, it.first)}"}
+
+        return triggers.joinToString(",", "override val triggers = Seq(", ")")
 
     }
 
     private fun generateAntiDependencySeq(r: Reaction): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
-        return (rInfo.portOutputs).joinToString( ",", "override val antiDependencies = Seq("){ "io.${it.name}" } +
-                (rInfo.childReactorOutputs).joinToString(separator = "\n", postfix = ")") {"io.${getChildPortName(it.second, it.first)}"}
+        val antiDeps = (rInfo.portOutputs.map{"io.${it.name}"}) + rInfo.childReactorOutputs.map {"io.${getChildPortName(it.second, it.first)}"}
+        return antiDeps.joinToString(",", "override val antiDependencies = Seq(", ")")
 
     }
 
