@@ -26,7 +26,7 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |    println("------------------------------------------------------------------------------------------------------")
             |    val chiselArgs = Array("--target-dir", s"${"$"}targetDir/tmp")
             |    implicit val globalConfig = GlobalReactorConfig(timeout = ${timeOut})
-            |    val verilog = (new chisel3.stage.ChiselStage).emitVerilog(new StandaloneMainReactor((mainReactorFunc)),chiselArgs)
+            |    val verilog = (new chisel3.stage.ChiselStage).emitVerilog(new StandaloneTopReactor((mainReactorFunc)),chiselArgs)
             |    val saveLocation = targetDir + "/ReactorChisel.v"
             |    Settings.writeVerilogToFile(verilog, saveLocation)
             |    println(s"Wrote the generated verilog to `${"$"}saveLocation`")
