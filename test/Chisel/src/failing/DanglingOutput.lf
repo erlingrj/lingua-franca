@@ -1,0 +1,6 @@
+target Chisel
+
+import Counter from "../lib/Counter.lf"
+main reactor {
+    cnt = new Counter()
+}

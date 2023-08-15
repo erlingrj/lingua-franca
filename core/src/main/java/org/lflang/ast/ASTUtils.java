@@ -1912,4 +1912,41 @@ public class ASTUtils {
     fedAttr.setAttrName(name);
     reaction.getAttributes().add(fedAttr);
   }
+
+  public static boolean doesInstantiationReferenceReactor(Instantiation instantiation, ReactorDecl declaration) {
+    if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(declaration))) {
+      return true;
+    }
+
+    if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
+      // Check if the reactor is instantiated
+      for (Instantiation child : reactorDef.getInstantiations()) {
+        if (doesInstantiationReferenceReactor(child, declaration)) {
+          return true;
+        }
+      }
+      // Check if the reactor is a super class
+      for (var parent : reactorDef.getSuperClasses()) {
+        if (declaration instanceof Reactor r) {
+          if (r.equals(parent)) {
+            return true;
+          }
+          // Check if there are instantiations of the reactor in a super class
+          if (parent instanceof Reactor p) {
+            for (var inst : p.getInstantiations()) {
+              if (doesInstantiationReferenceReactor(inst, declaration)) {
+                return true;
+              }
+            }
+          }
+        }
+        if (declaration instanceof ImportedReactor i) {
+          if (i.getReactorClass().equals(parent)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
 }

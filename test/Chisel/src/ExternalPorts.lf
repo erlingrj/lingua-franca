@@ -1,0 +1,26 @@
+target Chisel {
+    timeout: 1 usec
+}
+
+
+reactor WithExternal {
+    @external
+    output out : {=Bool()=}
+
+    @external
+    input in: {=Bool()=}
+
+    reaction(startup) in -> out {=
+        printf("in is %d\n", lf_get(in))
+        lf_set(out, true.B)
+    =}
+}
+
+reactor Wrapper {
+    w = new WithExternal()
+
+}
+
+main reactor {
+    w = new Wrapper()
+}

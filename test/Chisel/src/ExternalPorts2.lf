@@ -1,0 +1,27 @@
+target Chisel {
+    timeout: 1 msec
+}
+
+
+reactor WithExternal {
+    @external
+    output out : {=Bool()=}
+
+    timer t(0, 10 usec)
+    reaction(t) -> out {=
+        lf_set(out, true.B)
+    =}
+
+    reaction(t) -> out {=
+        lf_set(out, false.B)
+    =}
+}
+
+reactor Wrapper {
+    w = new WithExternal()
+
+}
+
+main reactor {
+    w = new Wrapper()
+}

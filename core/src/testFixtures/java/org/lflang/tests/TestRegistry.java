@@ -61,10 +61,6 @@ public class TestRegistry {
    */
   private final TestMap ignored = new TestMap();
 
-  /**
-   * A map from each test category to a set of tests that is the union of all registered tests in
-   * that category across all targets.
-   */
   private final Map<TestCategory, Set<LFTest>> allTargets = new EnumMap<>(TestCategory.class);
 
   @Inject private LFResourceProvider resourceProvider;
@@ -368,3 +364,4 @@ public class TestRegistry {
     }
   }
 }
+

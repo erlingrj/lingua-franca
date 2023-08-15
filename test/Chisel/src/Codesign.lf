@@ -1,0 +1,14 @@
+target Chisel {
+    codesign: true
+}
+
+reactor Codesign {
+    output out: {=UInt(32.W)=}
+    input in: {=UInt(32.W)=}
+
+    reaction(in) -> out {==}
+}
+
+main reactor {
+    codesign = new Codesign()
+}
