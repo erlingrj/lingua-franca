@@ -1,0 +1,16 @@
+target Chisel {
+    timeout: 3 usec
+}
+
+reactor FpgaTop {
+    input in: {=UInt(8.W)=}
+    output out: {=UInt(8.W)=}
+    timer t(0, 1 usec)
+
+    reaction(in) -> out {==}
+    reaction(t) -> out {==}
+}
+
+main reactor {
+    fpga = new FpgaTop()
+}

@@ -1,0 +1,55 @@
+target Codesign {
+    timeout: 14 msec
+}
+
+// A counter where we can update the increment
+reactor Fpga {
+    input in: {=UInt(32.W)=}
+    output out: {=UInt(32.W)=}
+
+    timer t (0, 1 msec)
+
+    state cnt: {=UInt(32.W)=}
+    state inc: {=UInt(32.W)=}
+
+    
+    reaction(in) {=
+        lf_write(inc, lf_get(in))
+    =}
+
+    reaction(t) -> out {=
+        val next = lf_read(cnt) + lf_read(inc)
+        lf_set(out, next)
+        lf_write(cnt, next)
+    =}
+}
+
+reactor Sw {
+    input in: uint32_t
+    output out: uint32_t
+
+    logical action a
+
+    reaction(startup) -> a, out {=
+        out.set(2)
+        lf_schedule(10ms)
+    =}
+
+    reaction(a) -> out {=
+        out.set(4)
+    =}
+
+    reaction(in) {=
+        std::cout <<"Got: " <<in.get() <<" @ " <<get_elapsed_logical_time() <<std::endl;
+    =}
+}
+
+
+main reactor {
+    @fpga
+    fpga = new Fpga()
+
+    sw = new Sw()
+
+    sw.out, fpga.out -> fpga.in, sw.in
+}

@@ -47,7 +47,7 @@ public abstract class DockerGenerator {
       case C, CCPP -> new CDockerGenerator(context);
       case TS -> new TSDockerGenerator(context);
       case Python -> new PythonDockerGenerator(context);
-      case CPP, Rust, Chisel -> throw new IllegalArgumentException("No Docker support for " + target + " yet.");
+      case CPP, Rust, Chisel, Codesign -> throw new IllegalArgumentException("No Docker support for " + target + " yet.");
     };
   }
 }

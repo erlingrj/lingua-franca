@@ -24,6 +24,7 @@ reactor Sink {
     =}
 
     reaction(shutdown) {=
+        printf("Shutdown\n")
         assert(lf_read(cnt) === 11.U)
     =}
 }

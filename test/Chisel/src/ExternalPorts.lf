@@ -1,4 +1,6 @@
-target Chisel
+target Chisel {
+    timeout: 1 usec
+}
 
 
 reactor WithExternal {

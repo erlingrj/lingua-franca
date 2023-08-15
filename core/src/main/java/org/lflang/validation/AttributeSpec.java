@@ -242,5 +242,6 @@ public class AttributeSpec {
     // @physical
     ATTRIBUTE_SPECS_BY_NAME.put("external", new AttributeSpec(null));
     ATTRIBUTE_SPECS_BY_NAME.put("bram", new AttributeSpec(null));
+    ATTRIBUTE_SPECS_BY_NAME.put("fpga", new AttributeSpec(null));
   }
 }

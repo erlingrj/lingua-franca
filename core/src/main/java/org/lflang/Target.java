@@ -24,6 +24,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
+
 import org.lflang.lf.TargetDecl;
 
 /**
@@ -362,7 +364,10 @@ public enum Target {
     Chisel("Chisel", true,
         "chisel", "Chisel",
         Arrays.asList("this")
-    );
+    ),
+    Codesign("Codesign",
+        true, Stream.concat(Chisel.keywords.stream(), CPP.keywords.stream()).toList()
+        ) ;
 
   /** String representation of this target. */
   private final String displayName;
@@ -510,7 +515,7 @@ public enum Target {
    */
   public boolean buildsUsingDocker() {
     return switch (this) {
-      case TS, Chisel-> false; // FIXME: Dont know regarding Chisel
+      case TS, Chisel, Codesign -> false; // FIXME: Dont know regarding Chisel
       case C, CCPP, CPP, Python, Rust -> true;
     };
   }
