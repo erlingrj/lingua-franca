@@ -24,19 +24,26 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang.generator.chiselcpp
+package org.lflang.generator.codesign
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
-import org.lflang.federated.generator.FedFileConfig
-import org.lflang.lf.Reactor
-import org.lflang.name
 import org.lflang.util.FileUtil
-import java.io.IOException
 import java.nio.file.Path
 
 class CodesignFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean) :
     FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
+        val codesignGenPath = srcPkgPath.resolve("codesign-gen").resolve(this.name)
+        val hwSrcPath = codesignGenPath.resolve("src/hardware")
+        val swSrcPath = codesignGenPath.resolve("src/software")
+        val hwSrcGenPath = codesignGenPath.resolve("src-gen")
+        val swSrcGenPath = codesignGenPath.resolve("src-gen")
 
 
+    override fun doClean() {
+
+        super.doClean()
+        FileUtil.deleteDirectory(codesignGenPath);
+
+    }
 }

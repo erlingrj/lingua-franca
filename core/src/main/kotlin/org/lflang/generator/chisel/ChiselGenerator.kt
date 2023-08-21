@@ -52,7 +52,8 @@ class ChiselGenerator (val context: LFGeneratorContext,
         val scalaSrcGenPath = fileConfig.srcGenPath.resolve("src/main/scala/")
         var mainReactor: Reactor = mainDef.reactor
         for (r in reactors) {
-            val generator = ChiselReactorGenerator(r, fileConfig, messageReporter)
+            val isMain = if (targetConfig.codesign) r.equals(mainReactor.instantiations.first().reactor) else r.isMain
+            val generator = ChiselReactorGenerator(r, fileConfig, messageReporter, context.targetConfig, isMain)
             val sourceFile = fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             codeMaps[scalaSrcGenPath.resolve(sourceFile)] = reactorCodeMap

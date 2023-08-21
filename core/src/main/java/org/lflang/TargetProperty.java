@@ -615,6 +615,15 @@ public enum TargetProperty {
         config.timeout = ASTUtils.toTimeValue(value);
       }),
 
+    CODESIGN(
+        "codesign",
+        PrimitiveType.BOOLEAN,
+        List.of(Target.Chisel),
+        (config) -> ASTUtils.toElement(config.codesign),
+        (config, value, err) -> {
+            config.codesign = ASTUtils.toBoolean(value);
+        }),
+
   /** Directive to enable tracing. */
   TRACING(
       "tracing",

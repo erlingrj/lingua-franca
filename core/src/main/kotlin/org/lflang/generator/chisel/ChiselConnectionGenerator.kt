@@ -33,6 +33,15 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
 
     val connectionObjects: MutableSet<String> = mutableSetOf()
     val postIODeclarations: StringBuilder = StringBuilder()
+    val unconnectedChildPorts: MutableSet<Pair<Input,Instantiation>> = mutableSetOf()
+
+    init {
+        for (inst in reactor.instantiations) {
+            for (input in inst.reactor.inputs) {
+                if (!input.isExternal) unconnectedChildPorts.add(Pair(input,inst))
+            }
+        }
+    }
 
     fun hasInwardPassThroughConnection(input: Input): Boolean = connectionObjects.contains(input.getInwardConnName)
 
@@ -91,6 +100,10 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
             postIODeclarations.appendLine("${effectPort.getConnName}.construct()")
         }
         builder.appendLine("${effectPort.getConnName} >> ${effectParent.name}.io.${effectPort.name}")
+
+        // Remove this port from set of unconnected ports
+        unconnectedChildPorts.remove(Pair(effectPort, effectParent))
+
         return builder.toString()
     }
     private fun generateChildReactorToReactionConnection(r: Reaction, trig: VarRef): String {
@@ -218,6 +231,9 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
         val rhsParent = rhs.container as Instantiation
         builder.appendLine("${lhsPort.getInwardConnName} >> ${rhsParent.name}.io.${rhsPort.name}")
 
+        // Remove the input port from set of unconnected inputs
+        unconnectedChildPorts.remove(Pair(rhsPort, rhsParent));
+
         return builder.toString()
     }
 
@@ -248,6 +264,9 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
         val rhsPort = rhs.variable as Port
         val rhsParent = rhs.container as Instantiation
         builder.appendLine("${lhs.getConnectionName} >> ${rhsParent.name}.io.${rhsPort.name}")
+
+        // Remove the input port from set of unconnected inputs
+        unconnectedChildPorts.remove(Pair(rhsPort, rhsParent));
         return builder.toString()
     }
 
@@ -321,4 +340,18 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
             ${reactionConns}
         """.trimIndent()
     }
+
+
+    fun generateUnconnectedChildPortsDriver(): String =
+        unconnectedChildPorts.joinToString("\n", prefix = "// Drive unconnected input port of child reactors\n")
+        {generateUnconnectedChildPortDriver(it.first, it.second)}
+
+    fun generateUnconnectedChildPortDriver(port: Input, parent: Instantiation): String =
+        """ |val ${port.getUnconnectedNamePrefix}_conn = ${port.getConnectionFactory}
+            |val ${port.getUnconnectedNamePrefix}_port = Module(${port.getUnconnectedInputPort})
+            |${port.getUnconnectedNamePrefix}_conn << ${port.getUnconnectedNamePrefix}_port.io.write
+            |${port.getUnconnectedNamePrefix}_conn >> ${parent.name}.io.${port.name}
+            |${port.getUnconnectedNamePrefix}_conn.construct()
+            |unconnectedChildInPorts += ${port.getUnconnectedNamePrefix}_port
+        """.trimMargin()
 }

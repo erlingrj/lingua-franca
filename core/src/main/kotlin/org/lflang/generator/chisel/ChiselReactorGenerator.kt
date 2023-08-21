@@ -27,7 +27,9 @@
 package org.lflang.generator.chisel
 
 import org.lflang.MessageReporter
+import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.fileComment
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Reactor
@@ -35,7 +37,7 @@ import org.lflang.lf.Reactor
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
-class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFileConfig, messageReporter: MessageReporter) {
+class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfig: ChiselFileConfig, messageReporter: MessageReporter, private val targetConfig: TargetConfig, private val isMain: Boolean) {
 
     private val states = ChiselStateGenerator(reactor)
     private val instances = ChiselInstanceGenerator(reactor, fileConfig, messageReporter)
@@ -111,6 +113,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
             |import chisel3._
             |import chisel3.util._
             |import reactor._
+            |import scala.collection.mutable.ArrayBuffer
             |///////////////////////////////////////////////////////////////////////////////////////////////////////
             |// Reaction declarations
             |///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,10 +135,12 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
         ${" |  "..generateIO()}
         ${" |  "..connections.generateDeclarationsPostIO()}
         ${" |  "..ports.generateConnections()}
+        ${" |  "..connections.generateUnconnectedChildPortsDriver()}
             |  val triggerIO = connectTimersAndCreateIO()
             |  reactorMain()
             |}
             |
+        ${" |  "..if (targetConfig.codesign && isMain) ports.generateSwIO() else ""}
         """.trimMargin()
     }
 }

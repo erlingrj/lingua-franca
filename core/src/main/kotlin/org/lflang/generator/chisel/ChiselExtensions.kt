@@ -40,6 +40,12 @@ val Port.getDataType: String
         }
     }
 
+
+val Port.getUnconnectedNamePrefix: String
+    get() = "${(this.eContainer() as Reactor).name}_${name}"
+
+val Port.getSwTokenType: String
+    get() = "new SwSingleToken($getDataType)"
 val Port.getTokenType: String
     get() = "new SingleToken($getDataType)"
 val Port.getConnName: String
@@ -183,6 +189,8 @@ val VarRef.getConnectionName: String
 val Port.getConnectionFactory: String
     get() = "new SingleValueConnectionFactory(${getDataType})"
 
+val Port.getUnconnectedInputPort: String
+    get() = "new UnconnectedInputPort(${getDataType}, ${getTokenType})"
 val Port.getInwardConnectionFactory: String
     get() = "new SingleValueInputPortInwardConnectionFactory(${getDataType})"
 

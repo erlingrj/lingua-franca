@@ -1,4 +1,4 @@
-package org.lflang.generator.chiselcpp
+package org.lflang.generator.codesign
 
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.resource.Resource
@@ -6,47 +6,42 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.resource.XtextResourceSet
 import org.eclipse.xtext.util.CancelIndicator
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.lflang.*
 import org.lflang.Target
 import org.lflang.ast.ASTUtils
 import org.lflang.ast.FormattingUtil
-import org.lflang.federated.generator.FedEmitter
-import org.lflang.federated.generator.LineAdjustingMessageReporter
 import org.lflang.generator.*
-import org.lflang.generator.LFGeneratorContext.lfGeneratorContextOf
-import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Reactor
 import java.lang.Boolean
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import kotlin.Int
 import kotlin.String
-import kotlin.with
 
-class CodesignHwEmitter(
+class CodesignSwEmitter(
     val context: LFGeneratorContext,
     val fileConfig: CodesignFileConfig,
-    val inst: Instantiation,
-    val main: Reactor,
+    val reactors: List<Reactor>,
     var targetConfig: TargetConfig,
     val messageReporter: MessageReporter,
 ){
 
+    val main = reactors.filter {it.isMain}.first();
 
-    val lfFilePath = fileConfig.srcPath.resolve("generated").resolve(inst.reactor.name + ".lf")
+    val lfFilePath = fileConfig.swSrcPath.resolve("_SwTop.lf")
+    val cmakeFilePath = fileConfig.swSrcPath.resolve("fpgaLib.cmake")
+
     fun generateProject(): Map<Path, CodeMap> {
-        Files.createDirectories(fileConfig.srcPath.resolve("generated"))
-        messageReporter.nowhere().info("Generating code for HW")
+        Files.createDirectories(fileConfig.swSrcPath)
+        messageReporter.nowhere().info("Generating code for the Software-part")
 
         val hwCode = """
             |// This file is code-generated DO NOT EDIT.
             |${generateTarget()}
             |${generateImports()}
+            |${generatePreamble()}
             |${generateReactor()}
-            |${generateMain()}
         """.trimMargin()
 
         var ret: MutableMap<Path, CodeMap> = HashMap()
@@ -55,13 +50,26 @@ class CodesignHwEmitter(
             ret.put(lfFilePath, codeMap)
             srcWriter.write(codeMap.generatedCode)
         }
+
+        val cmakeCode = """
+            set(HW_SRC_GEN "${"$"}{LF_SRC_PKG_PATH}/src-gen/hardware")
+            message(${"$"}{HW_SRC_GEN})
+            target_include_directories(${"$"}{LF_MAIN_TARGET} PRIVATE "${"$"}{HW_SRC_GEN}/_FpgaTop/build")
+            target_link_libraries(${"$"}{LF_MAIN_TARGET} "${"$"}{HW_SRC_GEN}/_FpgaTop/build/lfFPGA.a")
+        """.trimIndent()
+        Files.newBufferedWriter(cmakeFilePath).use { srcWriter ->
+            val codeMap = CodeMap.fromGeneratedCode(cmakeCode)
+            ret.put(cmakeFilePath, codeMap)
+            srcWriter.write(codeMap.generatedCode)
+        }
+
         return ret
     }
 
     fun generateTarget(): String {
         val builder = StringBuilder()
-        builder.appendLine("target Chisel {")
-        builder.appendLine("  codesign: true,")
+        builder.appendLine("target Cpp {")
+        builder.appendLine("  cmake-include: \"fpgaLib.cmake\",")
         if (targetConfig.timeout != null) {
             builder.appendLine("  timeout: ${targetConfig.timeout.time} ${targetConfig.timeout.unit.canonicalName}")
         }
@@ -69,29 +77,28 @@ class CodesignHwEmitter(
         return builder.toString()
     }
 
+    fun generatePreamble(): String =
+        """
+            public preamble {=
+                #include "platform.h"
+                #include "CodesignTopReactor.hpp"
+                enum FpgaCmd {NOP=0, WRITE, READ, RESET, TERMINATE};
+            =}
+        """.trimIndent()
+
     // Copy over the import statements that are used by the FPGA reactor
     fun generateImports(): String {
         val builder = StringBuilder()
         var imports = (main.eContainer() as Model).imports.toList()
         for (import in imports) {
-            if (import.reactorClasses.filter{ ASTUtils.doesInstantiationReferenceReactor(inst,it)}.isNotEmpty()) {
+            if (import.reactorClasses.filter{ ASTUtils.doesReactorDefReferenceOtherReactor(main,it)}.isNotEmpty()) {
                 builder.appendLine("import ${import.reactorClasses.joinToString(separator = ",")} from ${import.importURI}")
             }
         }
         return builder.toString()
     }
     fun generateReactor(): String {
-        return FormattingUtil.render(inst.reactor, FormattingUtil.DEFAULT_LINE_LENGTH , Target.Chisel, false)
-    }
-    fun generateMain(): String {
-        // Consider removing the @fpga attribute
-        return with(PrependOperator) {
-            """
-            |main reactor {
-         ${"|  "..FormattingUtil.render(inst, FormattingUtil.DEFAULT_LINE_LENGTH, Target.Chisel, false)}
-            |}
-        """.trimMargin()
-        }
+        return reactors.joinToString(separator = "\n") {FormattingUtil.render(it, FormattingUtil.DEFAULT_LINE_LENGTH , Target.Chisel, false)}
     }
 
     fun compile() {
@@ -102,7 +109,7 @@ class CodesignHwEmitter(
         // define output path here
         // define output path here
         val fsa = inj.getInstance(JavaIoFileSystemAccess::class.java)
-        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.srcGenPath.toString())
+        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.swSrcGenPath.toString())
         val res: Resource = rs.getResource(
             URI.createFileURI(
                 lfFilePath.toString()

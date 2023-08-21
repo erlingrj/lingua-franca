@@ -267,4 +267,6 @@ public class AttributeUtils {
       node.getAttributes().add(enclaveAttr);
     }
   }
+
+  public static boolean isFpgaTopLevel(Instantiation node) {return findAttributeByName(node, "fpga") != null;}
 }

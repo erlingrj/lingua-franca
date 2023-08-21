@@ -1,0 +1,18 @@
+target Chisel {
+    timeout: 10 usec
+}
+
+
+reactor R {
+    input in: {=UInt(8.W)=}
+
+    timer t(0, 5 usec)
+
+    reaction(t, in) {=
+        printf("Triggered @ %d\n", lf_time_logical())
+    =}
+}
+
+main reactor {
+    r = new R()
+}

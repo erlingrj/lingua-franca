@@ -28,6 +28,7 @@
 package org.lflang.generator.chisel
 
 import org.lflang.*
+import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 

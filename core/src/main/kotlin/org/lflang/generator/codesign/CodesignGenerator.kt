@@ -1,14 +1,15 @@
-package org.lflang.generator.chiselcpp
+package org.lflang.generator.codesign
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.AttributeUtils.findAttributeByName
 import org.lflang.Target
+import org.lflang.ast.CodesignFpgaWrapperTransformation
 import org.lflang.generator.*
 import org.lflang.generator.chisel.ChiselTypes
-import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
+import java.nio.file.Files
 import java.nio.file.Path
 
 class CodesignGenerator(
@@ -16,6 +17,7 @@ class CodesignGenerator(
     private val scopeProvider: LFGlobalScopeProvider
 ) : GeneratorBase(context) {
 
+    val swAstTransformation = CodesignFpgaWrapperTransformation(context.fileConfig.resource, messageReporter);
     val fileConfig: CodesignFileConfig = context.fileConfig as CodesignFileConfig
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
@@ -34,11 +36,28 @@ class CodesignGenerator(
             return
         }
 
-        // Generate LF code for each federate.
-        var lf2lfCodeMapMap: MutableMap<Path, CodeMap> = HashMap()
+        // Generate LF code for the HW
+        var lf2lfCodeMapMapHw: MutableMap<Path, CodeMap> = HashMap()
         val hwEmitter = CodesignHwEmitter(context, fileConfig,fpgaInst,mainReactor,targetConfig, messageReporter)
-        lf2lfCodeMapMap.putAll(hwEmitter.generateProject())
+        lf2lfCodeMapMapHw.putAll(hwEmitter.generateProject())
         hwEmitter.compile()
+
+
+        // Do AST here, after we have generated the HW project
+        swAstTransformation.applyTransformation(reactors)
+        setReactorsAndInstantiationGraph(context.getMode())
+
+        // Generate LF code for the SW
+        var lf2lfCodeMapMapSw: MutableMap<Path, CodeMap> = HashMap()
+        val swEmitter = CodesignSwEmitter(context, fileConfig,reactors,targetConfig, messageReporter)
+        lf2lfCodeMapMapSw.putAll(swEmitter.generateProject())
+        swEmitter.compile()
+
+        // Copy the produced binary to bin directory
+        if (!Files.exists(fileConfig.binPath)) {
+            Files.createDirectories(fileConfig.binPath)
+        }
+        Files.copy(fileConfig.codesignGenPath.resolve("bin/_SwTop"), fileConfig.binPath.resolve(mainReactor.name))
     }
 
 

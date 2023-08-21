@@ -307,6 +307,8 @@ public class TargetConfig {
   /** Path to a C file used by the Python target to setup federated execution. */
   public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
 
+  public boolean codesign = false;
+
   /** Settings related to clock synchronization. */
   public static class ClockSyncOptions {
 

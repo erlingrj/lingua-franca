@@ -123,6 +123,19 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
     private fun generateExternalOutputs(): String =
         externalOutputs.joinToString("\n", postfix = "\n") { "val ${it.name} = Output(${it.getDataType})" }
 
+    private fun generateSwInputs(): String =
+        inputs.joinToString("\n", postfix = "\n") { "val ${it.name} = Input(${it.getSwTokenType})" }
+
+    private fun generateSwOutputs(): String =
+        outputs.joinToString("\n", postfix = "\n") { "val ${it.name} = Output(${it.getSwTokenType})" }
+
+    private fun generateGetSwInputs(): String =
+        inputs.joinToString(",", prefix = "def getInputs = ArrayBuffer(", postfix = ")"){ it.name }
+
+    private fun generateGetSwOutputs(): String =
+        outputs.joinToString(",", prefix = "def getOutputs= ArrayBuffer(", postfix = ")"){ it.name }
+
+
     private fun generateExternalOutputLatch(): String =
         externalOutputs.joinToString("\n", postfix = "\n") {
             """
@@ -140,6 +153,18 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
             |}
             |val externalIO = IO(new ExternalIO())
          ${"|"..generateExternalOutputLatch()}
+            |
+        """.trimMargin()
+    }
+
+    fun generateSwIO(): String = with(PrependOperator) {
+        """ |// Generate the IO to be forwarded up to the top-level pins of the design.
+            |class ${reactor.name}SwIO extends SwIO {
+         ${"|  "..generateSwInputs()}
+         ${"|  "..generateSwOutputs()}
+         ${"|  "..generateGetSwInputs()}
+         ${"|  "..generateGetSwOutputs()}
+            |}
             |
         """.trimMargin()
     }

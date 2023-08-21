@@ -14,33 +14,35 @@ reactor Fpga {
 
     
     reaction(in) {=
+        printf("Got inc=%d\n", lf_get(in))
         lf_write(inc, lf_get(in))
     =}
 
     reaction(t) -> out {=
         val next = lf_read(cnt) + lf_read(inc)
+        printf("Update count to=%d\n", next)
         lf_set(out, next)
         lf_write(cnt, next)
     =}
 }
 
 reactor Sw {
-    input in: uint32_t
-    output out: uint32_t
+    input in: uint64_t
+    output out: uint64_t
 
     logical action a
 
     reaction(startup) -> a, out {=
-        out.set(2)
-        lf_schedule(10ms)
+        out.set(2);
+        a.schedule(10ms);
     =}
 
     reaction(a) -> out {=
-        out.set(4)
+        out.set(4);
     =}
 
     reaction(in) {=
-        std::cout <<"Got: " <<in.get() <<" @ " <<get_elapsed_logical_time() <<std::endl;
+        std::cout <<"Got: " <<*in.get() <<" @ " <<get_elapsed_logical_time() <<std::endl;
     =}
 }
 
