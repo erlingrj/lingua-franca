@@ -274,14 +274,14 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
         val builder = StringBuilder()
         val pName = "${input}"
         builder.append("""
-            val $pName = new OutputPort(new OutputPortConfig(${input.getDataType}, ${input.getTokenType}))
+            val $pName = new ${input.getOutputPort}(new OutputPortConfig(${input.getDataType}, ${input.getTokenType}))
             outPorts += $pName
         """.trimIndent())
 
         for (r in reactions) {
             builder.appendLine("$pName << $r.io.${input.name}")
         }
-
+        require(false) // I dont see how input.getConnFunc is correct here...??
         builder.append("""
             val ${input.getConnFuncName} = ${input.getConnFunc}
             val ${input.getConnName} = new ConnectionBuilder(${input.getConnFuncName}, ${input.getDataType}, ${input.getTokenType})

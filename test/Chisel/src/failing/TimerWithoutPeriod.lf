@@ -1,0 +1,18 @@
+target Chisel {
+    timeout: 10 usec
+}
+
+main reactor {
+    timer t(5 usec)
+
+
+    state triggered: {=UInt(1.W)=}
+    reaction(t) {=
+        assert(lf_time_logical() === Tag(Time.usec(5)))
+        lf_write(triggered, 1.U)
+    =}
+
+    reaction(shutdown) {=
+        assert(lf_read(triggered) === 1.U)
+    =}
+}

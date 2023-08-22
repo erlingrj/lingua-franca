@@ -1,0 +1,50 @@
+target Chisel {
+    timeout: 10 usec
+};
+
+
+reactor Source {
+    @array(length=8)
+    output out: {=UInt(8.W)=}
+
+    reaction(startup) -> out {=
+        val writer = ArrayPortStreamWriterStatic(out, 1 until 8)
+        writer.start := true.B
+        val regCnt = RegInit(0.U(3.W))
+
+        writer.write.bits := (8.U-regCnt)
+        writer.write.valid := true.B
+        when(writer.write.fire) {
+            regCnt := regCnt + 1.U
+        }
+
+        reactionDone := writer.done
+    =}
+}
+
+reactor Sink {
+    @array(length=8)
+    input in: {=UInt(8.W)=}
+
+    reaction(in) {=
+        val reader = ArrayPortStreamReaderStatic(in, 1 until 8)
+        reader.start := true.B
+
+        val regCnt = RegInit(0.U(4.W))
+
+        reader.read.ready := true.B
+
+        when (reader.read.fire) {
+            assert(reader.read.bits === 8.U-regCnt)
+            regCnt := regCnt + 1.U
+        }
+
+        reactionDone := reader.done
+    =}
+}
+
+main reactor {
+    src = new Source()
+    sink = new Sink()
+    src.out -> sink.in
+}

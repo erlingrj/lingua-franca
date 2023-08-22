@@ -240,8 +240,8 @@ public class AttributeSpec {
 
     // Chisel attributes
     // @physical
+    ATTRIBUTE_SPECS_BY_NAME.put("array", new AttributeSpec(List.of(new AttrParamSpec("length", AttrParamType.INT, false))));
     ATTRIBUTE_SPECS_BY_NAME.put("external", new AttributeSpec(null));
-    ATTRIBUTE_SPECS_BY_NAME.put("bram", new AttributeSpec(null));
     ATTRIBUTE_SPECS_BY_NAME.put("fpga", new AttributeSpec(null));
   }
 }

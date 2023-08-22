@@ -26,8 +26,30 @@
 package org.lflang.generator.chisel
 
 import org.lflang.*
-import org.lflang.AttributeUtils.findAttributeByName
+import org.lflang.AttributeUtils.*
 import org.lflang.lf.*
+
+// Ports commmon
+val Port.getReadMaster: String
+    get() {
+        if (isArrayPort(this)) return "new EventArrayReadMaster(${getDataType}, ${getTokenType})"
+        else return "new EventSingleValueReadMaster(${getDataType})"
+    }
+val Port.getReadSlave: String
+    get() {
+        if (isArrayPort(this)) return "new EventArrayReadSlave(${getDataType}, ${getTokenType})"
+        else return "new EventSingleValueReadSlave(${getDataType})"
+    }
+val Port.getWriteSlave: String
+    get() {
+        if (isArrayPort(this)) return "new EventArrayWriteSlave(${getDataType}, ${getTokenType})"
+        else return "new EventSingleValueWriteSlave(${getDataType})"
+    }
+val Port.getWriteMaster: String
+    get() {
+        if (isArrayPort(this)) return "new EventArrayWriteMaster(${getDataType}, ${getTokenType})"
+        else return "new EventSingleValueWriteMaster(${getDataType})"
+    }
 
 val Port.getDataType: String
     get() {
@@ -40,22 +62,83 @@ val Port.getDataType: String
         }
     }
 
-
 val Port.getUnconnectedNamePrefix: String
     get() = "${(this.eContainer() as Reactor).name}_${name}"
 
 val Port.getSwTokenType: String
     get() = "new SwSingleToken($getDataType)"
 val Port.getTokenType: String
-    get() = "new SingleToken($getDataType)"
+    get() {
+        if (isArrayPort(this)) {
+            return "new ArrayToken($getDataType, ${arrayPortLength(this)})"
+        } else {
+            return "new SingleToken($getDataType)"
+        }
+    }
+
 val Port.getConnName: String
     get() = "conn_$name"
 val Port.getConnFuncName: String
     get() = "conn_${name}_func"
 
+val Port.getConnType: String
+    get() {
+        if (isArrayPort(this)) {
+            return "ArrayToken"
+
+        } else {
+            return "SingleToken"
+        }
+    }
+
+val Port.getName: String
+    get() = this.name.replace(".", "__")
+val Port.getConnFunc: String
+    get() ="(c: ConnectionConfig[$getDataType.type, $getTokenType.type]) => new ${getConnType}(c)"
+
+
+val Port.getConnectionFactory: String
+    get() {
+        if (isArrayPort(this)) {
+            return "new ArrayConnectionFactory(${getDataType}, ${getTokenType})"
+        } else {
+            return "new SingleValueConnectionFactory(${getDataType})"
+        }
+    }
+
+val Port.getUnconnectedInputPort: String
+    get() {
+        if (isArrayPort(this)) {
+            return "new UnconnectedArrayInputPort(${getDataType}, ${getTokenType})"
+        } else {
+            return "new UnconnectedSingleValueInputPort(${getDataType})"
+        }
+    }
+val Port.getInwardConnectionFactory: String
+    get() = "new InputPortInwardConnectionFactory(${getDataType}, ${getTokenType})"
+
+val Port.isExternal: Boolean
+    get() = findAttributeByName(this, "external") != null
+
+val Port.getExternalOutputLatchName: String
+    get() = "_${this.name}Latch"
+
+fun getChildPortName(child: Instantiation, port: Port): String =
+    "${child.name}__${port.name}"
+
+// ------------------------------------------------------------------------------------------------------------------------------
+// Input ports
 val Input.getInwardConnName: String
     get() = "conn_pt_${name}"
 
+val Port.getInputPort: String
+    get() {
+        if (isArrayPort(this)) {
+            return "InputPortArray"
+        } else {
+            return "InputPortSingleValue"
+        }
+    }
 // Given an Input port. Return the list of reactions which is triggered or sourcing that port.
 val Input.getTriggeredReactions: List<Reaction>
     get() {
@@ -71,7 +154,17 @@ val Input.getTriggeredReactions: List<Reaction>
         return triggeredReactions
     }
 
+// ------------------------------------------------------------------------------------------------------------------------------
+val Port.getOutputPort: String
+    get() {
+        if (isArrayPort(this)) {
+            return "OutputPortArray"
+        } else {
+            return "OutputPortSingleValue"
+        }
+    }
 
+// Output ports
 // Given an output port. Return the list of Reactions which writes to that port.
 val Output.getWritingReactions: List<Reaction>
     get() {
@@ -113,21 +206,6 @@ val Output.getWritingReactors: List<Instantiation>
         return writingReactors
     }
 
-val Port.getConnType: String
-    get() = "SingleToken"
-
-val Port.getName: String
-    get() = this.name.replace(".", "__")
-val Port.getConnFunc: String
-    get() ="(c: ConnectionConfig[$getDataType.type, $getTokenType.type]) => new ${getConnType}(c)"
-
-val Timer.getDataType: String
-    get() = "UInt(0.W)"
-
-val Timer.getTokenType: String
-    get() = "new PureToken()"
-
-
 // FIXME: Actually get the correct data type
 val StateVar.getDataType: String
     get() {
@@ -162,16 +240,6 @@ val Reaction.getInstanceName: String
 val Reaction.getIOClassName: String
     get() = "Reaction${indexInContainer}IO"
 
-val Connection.getConnectionFactory: String
-    get() = "new SingleValueConnectionFactory(${getDataType})"
-
-// Consider this multi connections. Here we assu
-val Connection.getDataType: String
-    get() {
-        require(this.leftPorts.size == 1 && this.rightPorts.size == 1)
-        return (this.leftPorts.get(0).variable as Port).getDataType
-    }
-
 val Connection.getName: String
     get() {
         val lhsPort = this.leftPorts.get(0).variable as Port
@@ -185,28 +253,3 @@ val VarRef.getConnectionName: String
         val parentInst = this.container  as Instantiation
         return "_conn_${parentInst.name}_${port.name}"
     }
-
-val Port.getConnectionFactory: String
-    get() = "new SingleValueConnectionFactory(${getDataType})"
-
-val Port.getUnconnectedInputPort: String
-    get() = "new UnconnectedInputPort(${getDataType}, ${getTokenType})"
-val Port.getInwardConnectionFactory: String
-    get() = "new SingleValueInputPortInwardConnectionFactory(${getDataType})"
-
-val Port.isExternal: Boolean
-    get() = findAttributeByName(this, "external") != null
-
-val Port.getExternalOutputLatchName: String
-    get() = "_${this.name}Latch"
-fun getPortName(port: VarRef): String {
-    if (port.container is Instantiation) {
-        return getChildPortName(port.container, port.variable as Port)
-    } else {
-        return "${(port.variable as Port).name}"
-    }
-}
-
-fun getChildPortName(child: Instantiation, port: Port): String =
-    "${child.name}__${port.name}"
-

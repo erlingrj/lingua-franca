@@ -11,6 +11,7 @@ import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 class CodesignGenerator(
     val context: LFGeneratorContext,
@@ -57,7 +58,7 @@ class CodesignGenerator(
         if (!Files.exists(fileConfig.binPath)) {
             Files.createDirectories(fileConfig.binPath)
         }
-        Files.copy(fileConfig.codesignGenPath.resolve("bin/_SwTop"), fileConfig.binPath.resolve(mainReactor.name))
+        Files.copy(fileConfig.codesignGenPath.resolve("bin/_SwTop"), fileConfig.binPath.resolve(mainReactor.name), StandardCopyOption.REPLACE_EXISTING)
     }
 
 

@@ -108,7 +108,7 @@ class ChiselReactionGenerator(
         }
         rInfo.childReactorInputs.add(Pair(p, child))
 
-        return "val ${child.name}__${p.name} = new EventReadMaster(${p.getDataType}, ${p.getTokenType})"
+        return "val ${child.name}__${p.name} = ${p.getReadMaster}"
     }
 
     private fun generateOutputPortToChildIO(r: Reaction, child: Instantiation, p: Port): String {
@@ -123,13 +123,13 @@ class ChiselReactionGenerator(
         }
         rInfo.childReactorOutputs.add(Pair(p, child))
 
-        return "val ${child.name}__${p.name} = new EventWriteMaster(${p.getDataType}, ${p.getTokenType})"
+        return "val ${child.name}__${p.name} = ${p.getWriteMaster}"
     }
 
     private fun generateInputPortIO(r: Reaction, p: Port): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         rInfo.portInputs.add(p)
-        return "val ${p.getName} = new EventReadMaster(${p.getDataType}, ${p.getTokenType})"
+        return "val ${p.getName} = ${p.getReadMaster}"
     }
 
     private fun generateExternalInputPortIO(r: Reaction, p: Port): String {
@@ -147,13 +147,13 @@ class ChiselReactionGenerator(
     private fun generateOutputPortIO(r: Reaction, p: Port): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         rInfo.portOutputs.add(p)
-        return "val ${p.getName} = new EventWriteMaster(${p.getDataType}, ${p.getTokenType})"
+        return "val ${p.getName} = ${p.getWriteMaster}"
     }
 
     private fun generateTimerIO(r: Reaction, t: Timer): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         rInfo.timerInputs.add(t)
-        return "val ${t.name} = new EventReadMaster(${t.getDataType}, ${t.getTokenType})"
+        return "val ${t.name} = new EventPureReadMaster"
     }
 
     private fun generateBuiltinTriggerIO(r: Reaction, t: BuiltinTriggerRef): String {
@@ -161,9 +161,9 @@ class ChiselReactionGenerator(
         rInfo.builtinInputs.add(t)
 
         if (t.type == BuiltinTrigger.STARTUP) {
-            return "val startup = new EventReadMaster(UInt(0.W), new PureToken)"
+            return "val startup = new EventPureReadMaster"
         } else if (t.type == BuiltinTrigger.SHUTDOWN) {
-            return "val shutdown = new EventReadMaster(UInt(0.W), new PureToken)"
+            return "val shutdown = new EventPureReadMaster"
         } else {
             require(false)
             return ""

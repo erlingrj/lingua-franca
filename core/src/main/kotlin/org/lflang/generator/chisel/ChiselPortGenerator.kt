@@ -38,7 +38,7 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
     private fun generateInputPortDeclaration(p: Input) =
         if (p.getTriggeredReactions.size > 0) {
             """
-                val ${p.name} = Module(new InputPort(InputPortConfig(${p.getDataType}, ${p.getTokenType}, ${p.getTriggeredReactions.size})))
+                val ${p.name} = Module(new ${p.getInputPort}(InputPortConfig(${p.getDataType}, ${p.getTokenType}, ${p.getTriggeredReactions.size})))
                 inPorts += ${p.name}
             """.trimIndent()
         } else {
@@ -49,7 +49,7 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
         val numWriters = p.getWritingReactions.size + p.getWritingReactors.size
         if (numWriters > 0) {
             return """
-                val ${p.name} = Module(new OutputPort(OutputPortConfig(${p.getDataType}, ${p.getTokenType}, $numWriters)))
+                val ${p.name} = Module(new ${p.getOutputPort}(OutputPortConfig(${p.getDataType}, ${p.getTokenType}, $numWriters)))
                 outPorts += ${p.name}     
             """.trimIndent()
         }

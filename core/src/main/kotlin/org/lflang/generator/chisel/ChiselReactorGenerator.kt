@@ -55,9 +55,10 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
         }
 
         if (connections.hasInwardPassThroughConnection(input)) {
-            return "val ${input.name} = Vec($localConnections + ${input.getInwardConnName}.nDownstreamInwards, new EventReadMaster(${input.getDataType}, ${input.getTokenType}))"
+            return "val ${input.name} = Vec($localConnections + ${input.getInwardConnName}.nDownstreamInwards, ${input.getReadMaster})"
         } else {
-            return "val ${input.name} = Vec($localConnections, new EventReadMaster(${input.getDataType}, ${input.getTokenType}))"
+            return "val ${input.name} = Vec($localConnections, ${input.getReadMaster})"
+
         }
     }
 
@@ -85,7 +86,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
     }
 
     private fun generateIOOutput(output: Output): String =
-        "val ${output.name} = new EventWriteMaster(${output.getDataType}, ${output.getTokenType})"
+        "val ${output.name} = ${output.getWriteMaster}"
 
     private fun generateIO(): String = with(PrependOperator) {
             val inputs = reactor.inputs.joinToString("\n"){generateIOInput(it)}
@@ -113,6 +114,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
             |import chisel3._
             |import chisel3.util._
             |import reactor._
+            |import reactor.lib._
             |import scala.collection.mutable.ArrayBuffer
             |///////////////////////////////////////////////////////////////////////////////////////////////////////
             |// Reaction declarations

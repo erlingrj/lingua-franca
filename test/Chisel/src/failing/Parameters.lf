@@ -1,0 +1,14 @@
+target Chisel {
+    timeout: 10 usec
+}
+
+
+reactor Test(someVal:Int = 32) {
+    reaction(startup) {=
+        require(someVal == 42)
+    =}
+}
+
+main reactor {
+    t = new Test(someVal=42)
+}

@@ -41,6 +41,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
@@ -269,4 +270,8 @@ public class AttributeUtils {
   }
 
   public static boolean isFpgaTopLevel(Instantiation node) {return findAttributeByName(node, "fpga") != null;}
+  public static boolean isArrayPort(Port node) {return findAttributeByName(node, "array") != null;}
+  public static int arrayPortLength(Port node) {
+    return Integer.parseInt(getAttributeParameter(findAttributeByName(node, "array"), "length"));
+  }
 }

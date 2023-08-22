@@ -1,0 +1,40 @@
+target Chisel {
+    timeout: 10 usec
+};
+
+
+reactor Source {
+@array(length=8)
+    output out: {=UInt(8.W)=}
+
+    reaction(startup) -> out {=
+        val regCnt = RegInit(0.U(7.W))
+
+        lf_set(out, regCnt, 8.U-regCnt)
+        regCnt := regCnt + 1.U
+        reactionDone := regCnt === 7.U
+    =}
+}
+
+reactor Sink {
+    @array(length=8)
+    input in: {=UInt(8.W)=}
+
+    reaction(in) {=
+        val regCnt = RegInit(0.U(4.W))
+        val readData = lf_get(in, regCnt) 
+        
+        when (regCnt > 0.U) {
+            assert(in.resp.valid && in.resp.token.data === (9.U-regCnt) && readData === (9.U - regCnt))
+        }
+        regCnt := regCnt + 1.U
+
+        reactionDone := regCnt === 8.U
+    =}
+}
+
+main reactor {
+    src = new Source()
+    sink = new Sink()
+    src.out -> sink.in
+}
