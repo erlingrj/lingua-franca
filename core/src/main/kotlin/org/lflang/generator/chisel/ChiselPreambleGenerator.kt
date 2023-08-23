@@ -44,7 +44,7 @@ class ChiselReactorPreambleGenerator(
 
     fun generatePreamble(): String {
         val hasFileLevelPreambles = filePreambles.size > 0
-        val filePreamblePackage = "lf.${resource.name}.Preamble._"
+        val filePreamblePackage = "lf.${resource.name}._Preamble._"
         return with(PrependOperator) {
             """
                 | // Include file-level preambles
@@ -64,7 +64,7 @@ class ChiselFilePreambleGenerator(
 
     fun generatePreamble(): String {
         return with(PrependOperator) {
-            """ |package lf.${resource.name}.Preamble
+            """ |package lf.${resource.name}._Preamble
                 |import chisel3._
                 |import chisel3.util._
                 |// File-level preambles:
