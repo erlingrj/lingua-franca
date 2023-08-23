@@ -30,23 +30,23 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reactor
 import org.lflang.model
-import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toText
-import org.lflang.toUnixString
 
 
 class ChiselPreambleGenerator(
     private val reactor: Reactor,
 ) {
     /** A list of all preambles defined in the resource (file) */
-    private val preambles: EList<Preamble> = reactor.preambles
+    private val reactorPreambles: EList<Preamble> = reactor.preambles
+    private val filePreambles: EList<Preamble> = reactor.eResource().model.preambles
 
     fun generatePreamble(): String {
         return with(PrependOperator) {
             """
-                | // The following is copied from the user preamble
-            ${" |"..preambles.joinToString(separator = "\n") { it.code.toText() }}
-                | // End of user preamble.
+                | // Reactor-level preamble
+            ${" |"..reactorPreambles.joinToString(separator = "\n") { it.code.toText() }}
+                | // File-level
+            ${" |"..filePreambles.joinToString(separator = "\n") { it.code.toText() }}
             """.trimMargin()
         }
     }

@@ -35,20 +35,3 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toText
 import org.lflang.toUnixString
 
-
-class ChiselParameterGenerator(
-    private val reactor: Reactor,
-) {
-    /** A list of all preambles defined in the resource (file) */
-    private val parameters: EList<Parameter> = reactor.parameters
-
-    fun generatePreamble(): String {
-        return with(PrependOperator) {
-            """
-                | // The following are Reactor parameters
-            ${" |"..parameters.joinToString(separator = "\n") { "val ${it.name} = ${it.}}}
-                | // End of user preamble.
-            """.trimMargin()
-        }
-    }
-}

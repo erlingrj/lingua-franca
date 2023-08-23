@@ -26,6 +26,8 @@ reactor Sink {
     @array(length=8)
     input in: {=UInt(8.W)=}
 
+    state triggered: {=UInt(1.W)=}
+
     reaction(in) {=
         val reader = ArrayPortStreamReaderStatic(in, 1 until 8)
         reader.start := true.B
@@ -38,8 +40,12 @@ reactor Sink {
             assert(reader.read.bits === 8.U-regCnt)
             regCnt := regCnt + 1.U
         }
+        lf_write(triggered, 1.U)
 
         reactionDone := reader.done
+    =}
+    reaction(shutdown) {=
+        assert(lf_read(triggered) === 1.U)
     =}
 }
 

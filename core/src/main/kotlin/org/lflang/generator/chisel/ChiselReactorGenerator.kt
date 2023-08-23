@@ -116,14 +116,11 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
             |import reactor._
             |import reactor.lib._
             |import scala.collection.mutable.ArrayBuffer
-            |///////////////////////////////////////////////////////////////////////////////////////////////////////
+            |${preambles.generatePreamble()}
             |// Reaction declarations
-            |///////////////////////////////////////////////////////////////////////////////////////////////////////
             |${reactions.generateDeclarations()} 
             |
-            |///////////////////////////////////////////////////////////////////////////////////////////////////////
             |// Reactor declaration
-            |///////////////////////////////////////////////////////////////////////////////////////////////////////
             |class ${reactor.name} extends Reactor {
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
@@ -133,7 +130,6 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
         ${" |  "..reactions.generatePrecedenceConstraints()}
         ${" |  "..states.generateDeclarations()}
         ${" |  "..connections.generateDeclarations()}
-        ${" |  "..preambles.generatePreamble()}
         ${" |  "..generateIO()}
         ${" |  "..connections.generateDeclarationsPostIO()}
         ${" |  "..ports.generateConnections()}

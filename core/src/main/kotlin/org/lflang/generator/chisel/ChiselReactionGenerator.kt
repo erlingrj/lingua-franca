@@ -53,7 +53,6 @@ class ChiselReactionGenerator(
     private val reactor: Reactor,
 ) {
     val reactionInfos = mutableMapOf<Reaction, ReactionInfo>()
-    private val preambles = ChiselPreambleGenerator(reactor)
 
     fun generateDeclarations(): String =
         reactor.reactions.joinToString(separator = "\n", postfix = "\n") {
@@ -330,7 +329,6 @@ class ChiselReactionGenerator(
          ${"|  "..generatePortSeqs(r)}
          ${"|  "..generateIOInScope(r)}
          ${"|  "..generateReactionBody(r)}
-         ${"|  "..preambles.generatePreamble()}
             |   // Finally reactionMain is called which organizes when to 
             |   // trigger the reactionBody and more.
             |   reactionMain()

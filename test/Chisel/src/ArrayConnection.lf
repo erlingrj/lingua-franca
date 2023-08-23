@@ -4,7 +4,7 @@ target Chisel {
 
 
 reactor Source {
-@array(length=8)
+    @array(length=8)
     output out: {=UInt(8.W)=}
 
     reaction(startup) -> out {=

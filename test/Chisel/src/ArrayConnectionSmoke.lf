@@ -2,6 +2,9 @@ target Chisel {
     timeout: 1 usec
 }
 
+preamble {=
+    import reactor.lib._
+=}
 
 reactor Source {
     @array(length=4)
