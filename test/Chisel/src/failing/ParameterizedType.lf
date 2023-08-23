@@ -1,0 +1,31 @@
+target Chisel {
+    timeout: 10 usec
+}
+
+reactor Source<T>(gen: T = {=0.U.asTypeOf(gen)=}) {
+  output out: T
+
+  timer t(0,1 usec)
+
+  state cnt:{= UInt(8.W)=}
+  reaction(t) {=
+    lf_set(out, lf_read(cnt).asTypeOf(gen))
+    lf_write(cnt, lf_read(cnt) + 1.U)
+ =} 
+}
+
+reactor Sink<T>(gen: T = {=0.U.asTypeOf(gen)=}) {
+  input in: T
+
+  state cnt:{= UInt(8.W)=}
+  reaction(in) {=
+    assert(lf_get(in) === lf_read(cnt))
+
+    lf_write(cnt, lf_read(cnt) + 1.U)
+ =} 
+}
+
+main reactor {
+  src = new Source<UInt>(gen = {=UInt(8.W)=})
+  sink = new Sink<UInt>(gen ={=UInt(8.W)=})
+}

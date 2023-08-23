@@ -5,12 +5,14 @@ target Chisel {
 
 reactor WithPreamble {
     preamble {=
-        val test = 42.U
+        object PreambleTest {
+            val test = 42.U
+        }
     =}
 
     reaction(startup) {=
-        printf("Test = %d\n", test)
-        assert(test === 42.U)
+        printf("Test = %d\n", PreambleTest.test)
+        assert(PreambleTest.test === 42.U)
     =}
 }
 

@@ -14,7 +14,7 @@ reactor Source {
 
     reaction(startup) -> out {=
         val outputVal = Wire(new MyBundle())
-        outputVal.a := 42.u
+        outputVal.a := 42.U
         outputVal.b := 4.U
 
         lf_set(out, outputVal)

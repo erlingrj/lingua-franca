@@ -30,23 +30,45 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reactor
 import org.lflang.model
+import org.lflang.name
 import org.lflang.toText
 
 
-class ChiselPreambleGenerator(
+class ChiselReactorPreambleGenerator(
     private val reactor: Reactor,
 ) {
     /** A list of all preambles defined in the resource (file) */
     private val reactorPreambles: EList<Preamble> = reactor.preambles
+    private val resource: Resource = reactor.eResource()
     private val filePreambles: EList<Preamble> = reactor.eResource().model.preambles
 
     fun generatePreamble(): String {
+        val hasFileLevelPreambles = filePreambles.size > 0
+        val filePreamblePackage = "lf.${resource.name}.Preamble._"
         return with(PrependOperator) {
             """
-                | // Reactor-level preamble
+                | // Include file-level preambles
+            ${" |"..if (hasFileLevelPreambles) "import $filePreamblePackage" else ""}
+                | // Define reactor-level preambles
             ${" |"..reactorPreambles.joinToString(separator = "\n") { it.code.toText() }}
-                | // File-level
-            ${" |"..filePreambles.joinToString(separator = "\n") { it.code.toText() }}
+            """.trimMargin()
+        }
+    }
+}
+
+class ChiselFilePreambleGenerator(
+    private val resource: Resource,
+) {
+    /** A list of all preambles defined in the resource (file) */
+    private val preambles: EList<Preamble> = resource.model.preambles
+
+    fun generatePreamble(): String {
+        return with(PrependOperator) {
+            """ |package lf.${resource.name}.Preamble
+                |import chisel3._
+                |import chisel3.util._
+                |// File-level preambles:
+            ${" |"..preambles.joinToString(separator = "\n") { it.code.toText() }}
             """.trimMargin()
         }
     }

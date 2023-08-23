@@ -32,6 +32,7 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.cpp.CppPreambleGenerator
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -58,6 +59,15 @@ class ChiselGenerator (val context: LFGeneratorContext,
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             codeMaps[scalaSrcGenPath.resolve(sourceFile)] = reactorCodeMap
             FileUtil.writeToFile(reactorCodeMap.generatedCode, scalaSrcGenPath.resolve(sourceFile), true)
+        }
+
+        // Generate file level preambles for all resources
+        for (r in resources) {
+            val generator = ChiselFilePreambleGenerator(r.eResource)
+            val preambleFile = fileConfig.getPreamblePath(r.eResource)
+            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generatePreamble())
+            codeMaps[scalaSrcGenPath.resolve(preambleFile)] = preambleCodeMap
+            FileUtil.writeToFile(preambleCodeMap.generatedCode, scalaSrcGenPath.resolve(preambleFile), true)
         }
 
         // Generate the Main.scala file

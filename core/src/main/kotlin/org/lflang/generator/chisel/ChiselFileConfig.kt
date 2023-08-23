@@ -55,6 +55,8 @@ class ChiselFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchical
     /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
     fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.scala")
 
+    fun getPreamblePath(r: Resource): Path = getGenDir(r).resolve("Preamble.scala")
+
     /** Path to the build directory containing CMake-generated files */
     val buildPath: Path get() = this.outPath.resolve("build")
 }

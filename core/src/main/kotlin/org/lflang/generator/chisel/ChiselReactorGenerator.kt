@@ -29,7 +29,6 @@ package org.lflang.generator.chisel
 import org.lflang.MessageReporter
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.fileComment
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Reactor
@@ -46,7 +45,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
     private val reactions = ChiselReactionGenerator(reactor)
     private val connections = ChiselConnectionGenerator(reactor)
     private val ports = ChiselPortGenerator(reactor, connections)
-    private val preambles = ChiselPreambleGenerator(reactor)
+    private val preambles = ChiselReactorPreambleGenerator(reactor)
 
     private fun generateIOInput(input: Input): String {
         var localConnections = 1
