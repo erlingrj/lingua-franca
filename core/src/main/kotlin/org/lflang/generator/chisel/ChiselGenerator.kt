@@ -39,6 +39,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 class ChiselGenerator (val context: LFGeneratorContext,
         private val scopeProvider: LFGlobalScopeProvider
@@ -88,6 +89,13 @@ class ChiselGenerator (val context: LFGeneratorContext,
         // compile
         // FIXME: check no-compile
         compile()
+
+        // Copy executable to bin directory
+        if (!Files.exists(fileConfig.binPath)) {
+            Files.createDirectories(fileConfig.binPath)
+        }
+
+        Files.copy(fileConfig.srcGenPath.resolve("build/emu"), fileConfig.binPath.resolve(mainReactor.name), StandardCopyOption.REPLACE_EXISTING)
     }
 
     private fun compile() {

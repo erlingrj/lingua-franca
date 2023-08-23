@@ -34,7 +34,6 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |object LfMain {
             |  def main(args: Array[String]): Unit = {
             |    val targetDir = if (args.length == 1) args(0) else "build"
-            |    val binDir = "${fileConfig.binPath}"
             |    val mainReactorFunc = () => new lf.${mainReactorName}.${mainReactorName}()
             |    val mainReactorSwIOFunc = () => new lf.${mainReactorName}.${mainReactorName}SwIO()
             |    implicit val globalConfig = GlobalReactorConfig(timeout = ${timeOut})
@@ -68,13 +67,12 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |object LfMain {
             |  def main(args: Array[String]): Unit = {
             |    val targetDir = "build"
-            |    val binDir = "${fileConfig.binPath}"
             |    val mainReactorFunc = () => new lf.${mainReactor.name}.${mainReactor.name}()
             |    implicit val globalConfig = GlobalReactorConfig(timeout = ${timeOut})
             |    if (args.length == 1 && args(0).equals("characterize")) {
             |       CharacterizeUtils.standalone(() => new StandaloneTopReactor(mainReactorFunc), targetDir)
             |    } else {
-            |       ReactorChisel.mainStandalone(mainReactorFunc, targetDir, binDir, "${mainReactor.name}", globalConfig)
+            |       ReactorChisel.mainStandalone(mainReactorFunc, targetDir, "${mainReactor.name}", globalConfig)
             |    }
             |  }
             |}
