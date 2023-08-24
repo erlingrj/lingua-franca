@@ -33,13 +33,13 @@ import org.lflang.lf.Timer
 import org.lflang.lf.Time
 
 
-class ChiselTimerGenerator(private val reactor: Reactor) {
+class ChiselActionGenerator(private val reactor: Reactor) {
 
     fun generateTimerConfig(timer: Timer): String {
         val offset = ChiselTypes.getTargetTimeExpr(timer.offset.orZero())
         val period = ChiselTypes.getTargetTimeExpr(timer.period.orZero())
 
-        return "TimerTriggerConfig(offset = $offset, period = $period)"
+        return "TimerConfig(offset = $offset, period = $period, false)"
     }
     fun generateDeclarations() = with(PrependOperator) {
         reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") {
