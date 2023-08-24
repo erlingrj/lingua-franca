@@ -253,3 +253,12 @@ val VarRef.getConnectionName: String
         val parentInst = this.container  as Instantiation
         return "_conn_${parentInst.name}_${port.name}"
     }
+
+val Action.getVirtualTrigger: String
+    get() {
+        return "new PhysicalActionTriggerPureVirtual(offset=Time.nsec(0))"
+    }
+val Action.getReadMaster: String
+    get() {
+        return "new EventPureReadMaster"
+    }

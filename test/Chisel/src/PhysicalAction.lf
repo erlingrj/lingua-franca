@@ -1,0 +1,23 @@
+target Chisel {
+    timeout: 10 usec
+}
+
+
+reactor WithAction {
+    physical action a 
+
+    state trig: {=UInt(1.W)=}
+
+    reaction(a,startup) {=
+        lf_write(trig, 1.U)
+
+    =}
+
+    reaction(shutdown) {=
+        assert(lf_read(trig) === 1.U)
+    =}
+}
+
+main reactor {
+    r = new WithAction()
+}

@@ -90,12 +90,14 @@ class ChiselGenerator (val context: LFGeneratorContext,
         // FIXME: check no-compile
         compile()
 
-        // Copy executable to bin directory
+        // Copy executable to bin directory, if we created an executable. We might have only created a driver library.
         if (!Files.exists(fileConfig.binPath)) {
             Files.createDirectories(fileConfig.binPath)
         }
 
-        Files.copy(fileConfig.srcGenPath.resolve("build/emu"), fileConfig.binPath.resolve(mainReactor.name), StandardCopyOption.REPLACE_EXISTING)
+        if (Files.exists(fileConfig.srcGenPath.resolve("build/emu"))) {
+            Files.copy(fileConfig.srcGenPath.resolve("build/emu"), fileConfig.binPath.resolve(mainReactor.name), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     private fun compile() {

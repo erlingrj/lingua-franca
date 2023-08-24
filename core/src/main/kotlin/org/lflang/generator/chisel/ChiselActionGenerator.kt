@@ -28,6 +28,7 @@ package org.lflang.generator.chisel
 import org.lflang.TimeValue
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orZero
+import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Reactor
 import org.lflang.lf.Timer
 import org.lflang.lf.Time
@@ -35,16 +36,11 @@ import org.lflang.lf.Time
 
 class ChiselActionGenerator(private val reactor: Reactor) {
 
-    fun generateTimerConfig(timer: Timer): String {
-        val offset = ChiselTypes.getTargetTimeExpr(timer.offset.orZero())
-        val period = ChiselTypes.getTargetTimeExpr(timer.period.orZero())
-
-        return "TimerConfig(offset = $offset, period = $period, false)"
-    }
     fun generateDeclarations() = with(PrependOperator) {
-        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") {
+        reactor.actions.joinToString(separator = "\n", prefix = "// timers\n") {
+            require(it.origin.equals(ActionOrigin.PHYSICAL))
             """
-                val ${it.name} = new TimerTriggerVirtual(${generateTimerConfig(it)})
+                val ${it.name} = ${it.getVirtualTrigger}
                 localTriggers += ${it.name}
             """.trimIndent()
         }

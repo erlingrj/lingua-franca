@@ -42,6 +42,7 @@ class ReactionInfo {
     val portExternalOutputs= mutableListOf<Port>()
     val portOutputs = mutableListOf<Port>()
     val timerInputs = mutableListOf<Timer>()
+    val actionInputs = mutableListOf<Action>()
     val builtinInputs = mutableListOf<BuiltinTriggerRef>()
     val childReactorInputs = mutableListOf<Pair<Port, Instantiation>>()
     val childReactorOutputs = mutableListOf<Pair<Port, Instantiation>>()
@@ -155,6 +156,12 @@ class ChiselReactionGenerator(
         return "val ${t.name} = new EventPureReadMaster"
     }
 
+    private fun generateActionIO(r: Reaction, a: Action): String {
+        val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
+        rInfo.actionInputs.add(a)
+        return "val ${a.name} = ${a.getReadMaster}"
+    }
+
     private fun generateBuiltinTriggerIO(r: Reaction, t: BuiltinTriggerRef): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         rInfo.builtinInputs.add(t)
@@ -219,6 +226,9 @@ class ChiselReactionGenerator(
     private fun generateTimerIOs(r: Reaction): String =
         r.triggers.filter{it is VarRef}.map{it as VarRef}.map{it.variable}.filterIsInstance<Timer>().joinToString(separator = "\n", prefix = "// Timers \n", postfix = "\n") { generateTimerIO(r, it) }
 
+    private fun generateActionIOs(r: Reaction): String =
+        r.triggers.filter{it is VarRef}.map{it as VarRef}.map{it.variable}.filterIsInstance<Action>().joinToString(separator = "\n", prefix = "// Actions \n", postfix = "\n") { generateActionIO(r, it) }
+
     private fun generateExternalInputIOs(r: Reaction): String =
         getExternalInputs(r.sources).joinToString(separator = "\n", prefix = "// External inputs\n",postfix = "\n") { generateExternalInputPortIO(r, it.variable as Port)}
 
@@ -233,6 +243,7 @@ class ChiselReactionGenerator(
          ${"|  "..generateSourceIOs(r)}
          ${"|  "..generateEffectIOs(r)}
          ${"|  "..generateTimerIOs(r)}
+         ${"|  "..generateActionIOs(r)}
          ${"|  "..generateBuiltinTriggerIOs(r)}
          ${"|  "..generateExternalInputIOs(r)}
          ${"|  "..generateExternalOutputIOs(r)}
@@ -254,7 +265,11 @@ class ChiselReactionGenerator(
 
     private fun generateTriggerSeq(r: Reaction): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
-        val triggers = (rInfo.portInputs.map{"io.${it.name}"}) + rInfo.timerInputs.map{"io.${it.name}"} + rInfo.builtinInputs.map{"io.${it.name}"} + rInfo.childReactorInputs.map {"io.${getChildPortName(it.second, it.first)}"}
+        val triggers = (rInfo.portInputs.map{"io.${it.name}"}) +
+                rInfo.timerInputs.map{"io.${it.name}"} +
+                rInfo.builtinInputs.map{"io.${it.name}"} +
+                rInfo.childReactorInputs.map {"io.${getChildPortName(it.second, it.first)}"} +
+                rInfo.actionInputs.map {"io.${it.name}"}
 
         return triggers.joinToString(",", "override val triggers = Seq(", ")")
 
@@ -269,7 +284,7 @@ class ChiselReactionGenerator(
 
     private fun generateIOInScope(r: Reaction): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
-        return (rInfo.portInputs + rInfo.portOutputs + rInfo.timerInputs + rInfo.portExternalInputs + rInfo.portExternalOutputs).joinToString(separator = "\n", prefix = "// Bring IO into scope \n", postfix = "\n")
+        return (rInfo.portInputs + rInfo.portOutputs + rInfo.timerInputs + rInfo.actionInputs + rInfo.portExternalInputs + rInfo.portExternalOutputs).joinToString(separator = "\n", prefix = "// Bring IO into scope \n", postfix = "\n")
             { "val ${it.name} = io.${it.name}" } +
                 rInfo.builtinInputs.joinToString(separator = "\n", postfix = "\n") {"val ${it.name} = io.${it.name}"} +
             generatePortsFromChildrenInScope(r) +

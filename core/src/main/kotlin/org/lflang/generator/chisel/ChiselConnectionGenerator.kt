@@ -50,6 +50,7 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
     fun generateDeclarations(): String =
         reactor.connections.joinToString("\n","// Connections \n", postfix = "\n") {  generateConnection(it)} +
         reactor.timers.joinToString("\n", "// Timer-reaction connections\n", postfix = "\n") {generateTimerConnection(it)} +
+        reactor.actions.joinToString("\n", "// Action-reaction connections\n", postfix = "\n") {generateActionConnection(it)} +
         """
             // Startup trigger -> reaction connections
             ${generateStartupTriggerConnection()}
@@ -303,6 +304,22 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
             }
         }
         val reactionConns = triggeredReactions.joinToString("\n") {"${t.name}.declareTriggeredReaction(${it.getInstanceName}.${t.name})"}
+
+        return  """
+            ${reactionConns}
+        """.trimIndent()
+    }
+
+    private fun generateActionConnection(a: Action): String {
+        val triggeredReactions = mutableListOf<Reaction>()
+        for (r in reactor.reactions) {
+            for (trig in r.triggers) {
+                if (trig is VarRef && trig.name == a.name) {
+                    triggeredReactions += r
+                }
+            }
+        }
+        val reactionConns = triggeredReactions.joinToString("\n") {"${a.name}.declareTriggeredReaction(${it.getInstanceName}.${a.name})"}
 
         return  """
             ${reactionConns}
