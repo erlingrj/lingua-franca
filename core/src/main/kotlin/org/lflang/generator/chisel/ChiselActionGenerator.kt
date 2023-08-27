@@ -28,21 +28,36 @@ package org.lflang.generator.chisel
 import org.lflang.TimeValue
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orZero
-import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Reactor
-import org.lflang.lf.Timer
-import org.lflang.lf.Time
+import org.lflang.lf.*
 
 
 class ChiselActionGenerator(private val reactor: Reactor) {
 
-    fun generateDeclarations() = with(PrependOperator) {
-        reactor.actions.joinToString(separator = "\n", prefix = "// timers\n") {
-            require(it.origin.equals(ActionOrigin.PHYSICAL))
-            """
-                val ${it.name} = ${it.getVirtualTrigger}
-                localTriggers += ${it.name}
-            """.trimIndent()
-        }
+    private val actions = reactor.actions.filter {it.origin.equals(ActionOrigin.PHYSICAL)}
+
+    fun generateDeclarations() = with(PrependOperator){
+        generatePhysicalIO() +
+        actions.joinToString(separator = "\n", prefix = "// Physical actions\n") {generatePhysicalActionTrigger(it)}
+    }
+
+    private fun generatePhysicalActionTrigger(a: Action) = with(PrependOperator) {
+        """|val ${a.name} = ${a.getInputPort}
+           |${a.name} << physicalIO.${a.name}
+           |
+        """.trimMargin()
+    }
+
+    private fun generatePhysicalInputs() = with(PrependOperator) {
+        actions.joinToString(separator = "\n") {"val ${it.name} = ${it.getReadMaster}"}
+    }
+
+    private fun generatePhysicalIO(): String = with(PrependOperator) {
+        """ |// Generate the IO for the Physical Actions.
+            |class PhysicalIO extends ReactorPhysicalIO(childReactors) {
+         ${"|  "..generatePhysicalInputs()}
+            |}
+            |val physicalIO = IO(new PhysicalIO())
+            |
+        """.trimMargin()
     }
 }

@@ -254,11 +254,65 @@ val VarRef.getConnectionName: String
         return "_conn_${parentInst.name}_${port.name}"
     }
 
+val Action.getDataType: String
+    get() {
+        if (type == null) {
+            return "UInt(0.W)"
+        }
+        if (type.id == null) {
+            return type.code.body
+        } else {
+            return type.id
+        }
+    }
+
+val Action.getTokenType: String
+    get() {
+        if (isArrayAction(this)) {
+            return "new ArrayToken($getDataType, ${arrayPortLength(this)})"
+        } else if (type==null){
+            return "new PureToken"
+        } else {
+            return "new SingleToken($getDataType)"
+        }
+    }
+
 val Action.getVirtualTrigger: String
     get() {
         return "new PhysicalActionTriggerPureVirtual(offset=Time.nsec(0))"
     }
 val Action.getReadMaster: String
     get() {
-        return "new EventPureReadMaster"
+        if (type == null) {
+            return "new EventPureReadMaster"
+        } else if (isArrayAction(this)) {
+            return "new EventArrayReadMaster(${getDataType}, ${getTokenType})"
+        } else {
+            return "new EventSingleValueReadMaster(${getDataType})"
+        }
+    }
+
+val Action.getInputPort: String
+    get() {
+        if (isArrayAction(this)) {
+            return "Module(new InputPortArray(InputPortConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
+        } else if (type == null){
+            return "Module(new InputPortPure(InputPortConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
+        } else {
+            return "Module(new InputPortSingleValue(InputPortConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
+        }
+    }
+
+val Action.getTriggeredReactions: List<Reaction>
+    get() {
+        val triggeredReactions = mutableListOf<Reaction>()
+        val parent = this.eContainer() as Reactor
+        for (r in parent.reactions) {
+            for (dep in r.triggers + r.sources) {
+                if ((dep is VarRef) && dep.variable == this) {
+                    triggeredReactions += r
+                }
+            }
+        }
+        return triggeredReactions
     }

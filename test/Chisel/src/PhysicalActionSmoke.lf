@@ -4,16 +4,22 @@ target Chisel {
 
 
 reactor WithAction {
-    physical action a 
+    physical action a1
+    physical action a2: {=UInt(8.W)=}
+
+    @array(length=8)
+    physical action a3: {=UInt(8.W)=}
 
     state trig: {=UInt(1.W)=}
 
-    reaction(a,startup) {=
+    reaction(a1,a2,a3,startup) {=
+        printf("triggered at startup \n")
         lf_write(trig, 1.U)
 
     =}
 
     reaction(shutdown) {=
+        printf("triggered at shutdown\n")
         assert(lf_read(trig) === 1.U)
     =}
 }

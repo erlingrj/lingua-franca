@@ -34,6 +34,7 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
     private val outputs = reactor.outputs.filterNot {it.isExternal}
     private val externalInputs = reactor.inputs.filter {it.isExternal}
     private val externalOutputs= reactor.outputs.filter {it.isExternal}
+    private val physicalActions = reactor.actions.filter {it.origin.equals(ActionOrigin.PHYSICAL)}
 
     private fun generateInputPortDeclaration(p: Input) =
         if (p.getTriggeredReactions.size > 0) {

@@ -319,7 +319,7 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
                 }
             }
         }
-        val reactionConns = triggeredReactions.joinToString("\n") {"${a.name}.declareTriggeredReaction(${it.getInstanceName}.${a.name})"}
+        val reactionConns = triggeredReactions.joinToString("\n") {"${a.name} >> ${it.getInstanceName}.io.${a.name}"}
 
         return  """
             ${reactionConns}

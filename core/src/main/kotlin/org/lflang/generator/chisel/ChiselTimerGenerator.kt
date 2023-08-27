@@ -42,7 +42,7 @@ class ChiselTimerGenerator(private val reactor: Reactor) {
         return "TimerTriggerConfig(offset = $offset, period = $period)"
     }
     fun generateDeclarations() = with(PrependOperator) {
-        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") {
+        reactor.timers.joinToString(separator = "\n", prefix = "// Timers\n") {
             """
                 val ${it.name} = new TimerTriggerVirtual(${generateTimerConfig(it)})
                 localTriggers += ${it.name}
