@@ -9,10 +9,16 @@ reactor Source {
 
     reaction(startup) -> out {=
         val regCnt = RegInit(0.U(7.W))
+        val writePort = lf_set_array(out, 0.U, 8.U)
 
-        lf_set(out, regCnt, 8.U-regCnt)
-        regCnt := regCnt + 1.U
-        reactionDone := regCnt === 7.U
+        writePort.valid := true.B
+        writePort.bits.data := regCnt
+
+        when(writePort.fire) {
+            regCnt := regCnt + 1.U
+        }
+
+        reactionDone := regCnt === 7.U && writePort.fire
     =}
 }
 
@@ -22,14 +28,14 @@ reactor Sink {
 
     reaction(in) {=
         val regCnt = RegInit(0.U(4.W))
-        val readData = lf_get(in, regCnt) 
-        
-        when (regCnt > 0.U) {
-            assert(in.resp.valid && in.resp.token.data === (9.U-regCnt) && readData === (9.U - regCnt))
-        }
-        regCnt := regCnt + 1.U
+        val readPort = lf_get_array(in, 0.U, 8.U)
 
-        reactionDone := regCnt === 8.U
+        readPort.ready := true.B
+        when (readPort.fire) {
+            assert(readPort.bits.data === regCnt)
+            regCnt := regCnt + 1.U
+        }
+        reactionDone := regCnt === 7.U && readPort.fire
     =}
 }
 

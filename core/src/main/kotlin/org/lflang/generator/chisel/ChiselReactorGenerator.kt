@@ -64,7 +64,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
 
     private fun generateDriveDefaultsFlipped(): String = with(PrependOperator) {
         val inputs = reactor.inputs.joinToString("\n") {"${it.name}.foreach(_.driveDefaultsFlipped())" }
-        val outputs = reactor.outputs.joinToString("\n") {"${it.name}.driveDefaultsFlipped()" }
+        val outputs = reactor.outputs.joinToString("\n") {"${it.name}.plugUnusedFromOutside()" }
         return """
             // Drive all input and ouput ports to default inactive values, from context external to the Reactor.
             def driveDefaultsFlipped(): Unit = {

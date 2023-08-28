@@ -153,7 +153,7 @@ class ChiselReactionGenerator(
     private fun generateTimerIO(r: Reaction, t: Timer): String {
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         rInfo.timerInputs.add(t)
-        return "val ${t.name} = new EventPureReadMaster"
+        return "val ${t.name} = ${t.getReadMaster}"
     }
 
     private fun generateActionIO(r: Reaction, a: Action): String {
@@ -167,9 +167,9 @@ class ChiselReactionGenerator(
         rInfo.builtinInputs.add(t)
 
         if (t.type == BuiltinTrigger.STARTUP) {
-            return "val startup = new EventPureReadMaster"
+            return "val startup = ${t.getReadMaster}"
         } else if (t.type == BuiltinTrigger.SHUTDOWN) {
-            return "val shutdown = new EventPureReadMaster"
+            return "val shutdown = ${t.getReadMaster}"
         } else {
             require(false)
             return ""

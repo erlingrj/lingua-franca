@@ -32,23 +32,23 @@ import org.lflang.lf.*
 // Ports commmon
 val Port.getReadMaster: String
     get() {
-        if (isArrayPort(this)) return "new EventArrayReadMaster(${getDataType}, ${getTokenType})"
-        else return "new EventSingleValueReadMaster(${getDataType})"
+        if (isArrayPort(this)) return "new ArrayTokenReadMaster(${getDataType}, ${getTokenType})"
+        else return "new SingleTokenReadMaster(${getDataType})"
     }
 val Port.getReadSlave: String
     get() {
-        if (isArrayPort(this)) return "new EventArrayReadSlave(${getDataType}, ${getTokenType})"
-        else return "new EventSingleValueReadSlave(${getDataType})"
+        if (isArrayPort(this)) return "new ArrayTokenReadSlave(${getDataType}, ${getTokenType})"
+        else return "new SingleTokenReadSlave(${getDataType})"
     }
 val Port.getWriteSlave: String
     get() {
-        if (isArrayPort(this)) return "new EventArrayWriteSlave(${getDataType}, ${getTokenType})"
-        else return "new EventSingleValueWriteSlave(${getDataType})"
+        if (isArrayPort(this)) return "new ArrayTokenWriteSlave(${getDataType}, ${getTokenType})"
+        else return "new SingleTokenWriteSlave(${getDataType})"
     }
 val Port.getWriteMaster: String
     get() {
-        if (isArrayPort(this)) return "new EventArrayWriteMaster(${getDataType}, ${getTokenType})"
-        else return "new EventSingleValueWriteMaster(${getDataType})"
+        if (isArrayPort(this)) return "new ArrayTokenWriteMaster(${getDataType}, ${getTokenType})"
+        else return "new SingleTokenWriteMaster(${getDataType})"
     }
 
 val Port.getDataType: String
@@ -284,11 +284,11 @@ val Action.getVirtualTrigger: String
 val Action.getReadMaster: String
     get() {
         if (type == null) {
-            return "new EventPureReadMaster"
+            return "new PureTokenReadMaster"
         } else if (isArrayAction(this)) {
-            return "new EventArrayReadMaster(${getDataType}, ${getTokenType})"
+            return "new ArrayTokenReadMaster(${getDataType}, ${getTokenType})"
         } else {
-            return "new EventSingleValueReadMaster(${getDataType})"
+            return "new SingleTokenReadMaster(${getDataType})"
         }
     }
 
@@ -316,3 +316,10 @@ val Action.getTriggeredReactions: List<Reaction>
         }
         return triggeredReactions
     }
+
+val Timer.getReadMaster: String
+    get() = "new PureTokenReadMaster"
+
+
+val BuiltinTriggerRef.getReadMaster: String
+    get() = "new PureTokenReadMaster"

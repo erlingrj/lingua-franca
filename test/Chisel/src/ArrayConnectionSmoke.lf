@@ -2,22 +2,17 @@ target Chisel {
     timeout: 1 usec
 }
 
-preamble {=
-    import reactor.lib._
-=}
-
 reactor Source {
     @array(length=4)
     output out: {=UInt(8.W)=}
 
     reaction(startup) -> out {=
-        val w = ArrayPortStreamWriterStatic(out, Seq(1))
-        w.start := true.B
+        val writePort = lf_set_array(out, 0.U, 1.U)
 
-        w.write.valid := true.B
-        w.write.bits := 42.U
+        writePort.valid := true.B
+        writePort.bits.data := 42.U
 
-        reactionDone := w.done
+        reactionDone := writePort.fire
     =}
 }
 
@@ -29,13 +24,13 @@ reactor Sink {
 
     reaction(in) {=
         printf("Triggered @ %d\n", lf_time_logical())
-        val r = ArrayPortStreamReaderStatic(in, Seq(1))
-        r.start := true.B
-        r.read.ready := true.B
-        when(r.read.fire) {
-            lf_write(recv, r.read.bits)
+        val r = lf_get_array(in, 0.U, 1.U)
+        r.ready := true.B
+        when(r.fire) {
+            lf_write(recv, r.bits.data)
         }
-        reactionDone := r.done
+
+        reactionDone := r.fire
     =}
 
     reaction(shutdown) {=
