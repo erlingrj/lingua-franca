@@ -6,7 +6,9 @@ reactor Source {
     @array(length=128)
     output out: {=UInt(8.W)=}
 
-    reaction(startup) -> out {=
+    timer t(0, 200 nsec)
+
+    reaction(t) -> out {=
         val writePort = lf_set_array(out, 64.U, 64.U)
         val writeData = VecInit(Seq.tabulate(64)(i => i.U))
         val cnt = RegInit(0.U(8.W))
@@ -29,9 +31,9 @@ reactor Sink {
     reaction(in) {=
         printf("Triggered @ %d\n", lf_time_logical())
         val r = lf_get_array(in, 0.U, 128.U)
-        val expData = for (i <- 0 until 128) yield {
+        val expData = VecInit(Seq.tabulate(128)(i => {
             if (i < 64) 0.U else (i-64).U
-        }
+        }))
         val cnt = RegInit(0.U(8.W))
 
         r.ready := true.B
@@ -42,7 +44,6 @@ reactor Sink {
 
         reactionDone := cnt === 127.U && r.fire
     =}
-
 }
 
 main reactor {
