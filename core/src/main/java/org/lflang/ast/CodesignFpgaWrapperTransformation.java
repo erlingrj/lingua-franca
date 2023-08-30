@@ -20,13 +20,17 @@
 
 package org.lflang.ast;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import static org.lflang.AttributeUtils.arrayPortLength;
+import static org.lflang.AttributeUtils.copyArrayAttribute;
+import static org.lflang.AttributeUtils.isArrayPort;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -34,8 +38,6 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
 import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
-import org.lflang.ast.ASTUtils;
-import org.lflang.ast.AstTransformation;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -44,27 +46,21 @@ import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
-import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.Time;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Type;
-import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.Variable;
 
 public class CodesignFpgaWrapperTransformation implements AstTransformation {
 
@@ -113,11 +109,12 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         // Duplicate inputs
         for (Input input : fpga.getInputs()) {
             Input in = factory.createInput();
-            Type type = chiselTypeToCppType(input.getType());
+            Type type = chiselPortToCppType(input);
             String name = input.getName();
             in.setName(name);
             in.setType(EcoreUtil.copy(type));
 
+            copyArrayAttribute(input, in);
             // Add all objects to the wrapper class.
             res.getInputs().add(in);
 
@@ -129,10 +126,11 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         // Duplicate output
         for (Output output : fpga.getOutputs()) {
             Output out = factory.createOutput();
-            Type type = chiselTypeToCppType(output.getType());
+            Type type = chiselPortToCppType(output);
             String name = output.getName();
             out.setName(name);
             out.setType(EcoreUtil.copy(type));
+            copyArrayAttribute(output, out);
 
             // Add all objects to the wrapper class.
             res.getOutputs().add(out);
@@ -141,6 +139,7 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
             varRef.setVariable(out);
             outputMap.put(out, varRef);
         }
+
 
         // Create a parameter for enabling/disabling tracing
         Parameter tracing = factory.createParameter();
@@ -185,6 +184,22 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         sShutdownHandled.setInit(EcoreUtil.copy(falseInit));
         res.getStateVars().add(sShutdownHandled);
 
+        // Create state vars for storing buffers and sizes for any array ports.
+        Stream.concat(fpga.getOutputs().stream(), fpga.getInputs().stream()).forEach( it -> {
+            // If array port add some state vars for it
+            if (isArrayPort(it)) {
+                StateVar portBuf = factory.createStateVar();
+                portBuf.setName(it.getName()+"_buf");
+                portBuf.setType(getType("void*"));
+                res.getStateVars().add(portBuf);
+
+                StateVar portBufSize = factory.createStateVar();
+                portBufSize.setName(it.getName()+"_buf_size");
+                portBufSize.setType(getType("int"));
+                res.getStateVars().add(portBufSize);
+            }
+        });
+
         // Create startup reaction
         BuiltinTriggerRef startupTrigger = factory.createBuiltinTriggerRef();
         startupTrigger.setType(BuiltinTrigger.STARTUP);
@@ -213,6 +228,18 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         main.setCode(factory.createCode());
         main.getCode().setBody(generateMainReactionBody());
         res.getReactions().add(main);
+
+        // Create shutdown reaction
+        // Create main reaction
+        BuiltinTriggerRef shutShutdownTrigger = factory.createBuiltinTriggerRef();
+        shutShutdownTrigger.setType(BuiltinTrigger.SHUTDOWN);
+        Reaction shut = factory.createReaction();
+        shut.getTriggers().add(shutShutdownTrigger);
+
+        shut.setCode(factory.createCode());
+        shut.getCode().setBody(generateShutdownReactionBody());
+        res.getReactions().add(shut);
+
 
         // Hook the new reactor class into the AST.
         EObject node =
@@ -269,22 +296,39 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
     }
 
     private String generateStartupReactionBody() {
-        return """
+        CodeBuilder code = new CodeBuilder();
+        code.pr("""
             platform = initPlatform(vcdTracing);
             fpga = new CodesignTopReactor(platform);
-            std::cout << "Attached to FPGA Reactor with Signature: " <<hex << fpga->get_signature() <<dec << std::endl;
+            reactor::log::Info() << "Attached to FPGA Reactor with Signature: " <<hex << fpga->get_signature() <<dec;
             auto NET = reactor::Duration(fpga->get_coordination_nextEventTag());
             // Dont schedule anything if the NET=0 as the main reaction is triggered by startup
             if (NET > 0ns) {
                 a.schedule(NET);
             }
-            """;
+            // Allocate buffers for shared memory ports (i.e. array ports)
+            """);
+
+        Stream.concat(outputMap.keySet().stream(), inputMap.keySet().stream()).forEach(it -> {
+            if (isArrayPort(it)) {
+                code.pr(it.getName() + "_buf_size = " + arrayPortLength(it) + " * sizeof("+ getBaseTypeFromCppArray(it.getType())+");");
+                code.pr(it.getName() + "_buf = platform->allocAccelBuffer("+it.getName()+"_buf_size);");
+                code.pr("fpga->set_ports_"+it.getName()+"_addr(static_cast<uint32_t>(reinterpret_cast<intptr_t>("+it.getName()+"_buf)));");
+            }
+        });
+        return code.toString();
     }
     private String generateMainReactionOutputCheck(Output out) {
         CodeBuilder code = new CodeBuilder();
         code.pr("if (fpga->get_ports_" + out.getName() + "_present()) {");
         code.indent();
-        code.pr(out.getName() + ".set(fpga->get_ports_" + out.getName() + "_data());");
+        if (isArrayPort(out)) {
+            code.pr("std::array<"+getBaseTypeFromCppArray(out.getType())+","+arrayPortLength(out)+"> "+out.getName()+"_tmp;");
+            code.pr("platform->copyBufferAccelToHost("+out.getName()+"_buf, "+out.getName()+"_tmp.data(), "+out.getName()+"_buf_size);");
+            code.pr(out.getName() + ".set(std::move("+out.getName() +"_tmp));");
+        } else {
+            code.pr(out.getName() + ".set(fpga->get_ports_" + out.getName() + "_data());");
+        }
         code.unindent();
         code.pr("}");
         return code.toString();
@@ -294,10 +338,16 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         CodeBuilder code = new CodeBuilder();
         code.pr("if (" + in.getName() + ".is_present()) {");
         code.indent();
-        code.pr("fpga->set_ports_" + in.getName() + "_data(*" + in.getName() + ".get());");
+        code.pr("fire_fpga = true;");
         code.pr("fpga->set_ports_" + in.getName() + "_present(true);");
+        if (isArrayPort(in)) {
+            code.pr("platform->copyBufferHostToAccel("+in.getName()+".get()->data(), "+in.getName()+"_buf, "+in.getName()+"_buf_size);");
+        } else {
+            code.pr("fpga->set_ports_" + in.getName() + "_data(*" + in.getName() + ".get());");
+        }
         code.unindent();
         code.pr("} else {");
+        code.indent();
         code.pr("fpga->set_ports_" + in.getName() + "_present(false);");
         code.unindent();
         code.pr("}");
@@ -307,12 +357,13 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         CodeBuilder code = new CodeBuilder();
         code.pr("""
                 // Early exit if shutdown trigger already handled.
-                if(shutdown_handled) {
-                    return;
-                }
+                if(shutdown_handled) return;
+                auto now = get_elapsed_logical_time();
+                auto NET = reactor::Duration(fpga->get_coordination_nextEventTag());
+                reactor::log::Debug() <<"Fpga Wrapper: Triggered @ " <<now;
+                auto fire_fpga = false;
                 """);
 
-        code.pr("auto now = get_elapsed_logical_time();");
         code.prComment("Check all the inputs and forward any data");
         for (Input in: inputMap.keySet()) {
             code.pr(generateMainReactionInputCheck(in));
@@ -321,13 +372,13 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         code.pr("""
             // Handle the shutdown trigger
             if(shutdown.is_present()) {
-                auto NET = reactor::Duration(fpga->get_coordination_nextEventTag());
                 fpga->set_coordination_shutdownCommand_valid(true);
-                fpga->set_coordination_shutdownCommand_independent(NET > now);
-                shutdown_handled = true; // To avoid handling twice due to possible runtime bug in Cpp target
+                fpga->set_coordination_shutdownCommand_independent(NET != now);
             }
             """);
 
+        code.pr("if (fire_fpga) {");
+        code.indent();
         code.prComment("Set the TAG");
         code.pr("fpga->set_coordination_tagAdvanceGrant(now.count());");
         code.prComment("Fire the FPGA");
@@ -344,28 +395,63 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         code.pr("fpga->set_cmd(READ);");
 
         code.prComment("Lookup next event originating from the FPGA");
-        code.pr("auto NET = fpga->get_coordination_nextEventTag();");
-        code.pr("auto NET_duration = NET - now.count();");
-        code.pr("a.schedule(reactor::Duration(NET_duration));");
-
-        code.prComment("Handle termination of FPGA accelerator");
-        code.pr("if (shutdown.is_present()) {");
+        code.pr("NET = reactor::Duration(fpga->get_coordination_nextEventTag());");
+        code.pr("if (NET < reactor::Duration::max() && NET > 0ns) {");
         code.indent();
-        code.pr("delete fpga;");
-        code.pr("deinitPlatform(platform);");
+        code.pr("auto NET_duration = NET - now;");
+        code.pr("reactor::log::Debug() <<\"Fpga Wrapper: Scheduling next FPGA event @ \" <<NET <<\" in \" <<NET_duration;");
+        code.pr("a.schedule(NET_duration);");
         code.unindent();
         code.pr("}");
-
+        code.unindent();
+        code.pr("} else {");
+        code.indent();
+        code.pr("reactor::log::Debug() <<\"Fpga Wrapper: No events for the FPGA\";");
+        code.unindent();
+        code.pr("}");
+        code.pr("reactor::log::Debug() <<\"Fpga Wrapper: Finished @ \" <<now;");
         return code.toString();
     }
 
-    private Type chiselTypeToCppType(Type chiselType) {
+    private String generateShutdownReactionBody() {
+        CodeBuilder code = new CodeBuilder();
+        code.pr("if(!shutdown_handled) {");
+        code.indent();
+        code.pr("reactor::log::Info() <<\"Fpga Wrapper: Do shutdown and deinitialize\";");
+
+        Stream.concat(outputMap.keySet().stream(), inputMap.keySet().stream()).forEach( it ->{
+            if (isArrayPort(it)) {
+                code.pr("platform->deallocAccelBuffer("+it.getName() + "_buf);");
+            }
+        });
+        code.pr("delete fpga;");
+        code.pr("deinitPlatform(platform);");
+        code.pr("shutdown_handled=true;");
+        code.unindent();
+        code.pr("}");
+        return code.toString();
+    }
+
+    private Type chiselPortToCppType(Port chiselPort) {
         Type type = factory.createType();
+        var s = chiselPort.getType().getCode().getBody();
+        Pattern pattern = Pattern.compile("UInt\\((\\d+)\\.W\\)");
+        Matcher matcher = pattern.matcher(s);
 
-        if (chiselType.getCode().getBody().contains("UInt")) {
-            type.setId("uint64_t");
+        if (matcher.matches()) {
+            var w = Integer.parseInt(matcher.group(1));
+            if (w != 8 && w != 16 && w !=32 && w != 64) {
+                throw new RuntimeException("The UInts between HW and SW must be either 8,16,32 or 64 bit");
+            }
+            var datatype = "uint" + Integer.toString(w) + "_t";
+
+            if (isArrayPort(chiselPort)) {
+                datatype += "[" + arrayPortLength(chiselPort) + "]";
+            }
+            type.setId(datatype);
+        } else {
+            throw new RuntimeException("Did not recognize port type between HW and SW. Must be UInt(8/16/32/64.W). Got: " + s);
         }
-
         return type;
     }
 
@@ -376,5 +462,14 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
 
     private String wrapperInstName() {
         return "_fpgaWrapper";
+    }
+    private Type getType(String t) {
+        Type res = factory.createType();
+        res.setId(t);
+        return res;
+    }
+
+    private String getBaseTypeFromCppArray(Type t) {
+        return t.getId().replaceAll("\\[.*?\\]", "");
     }
 }

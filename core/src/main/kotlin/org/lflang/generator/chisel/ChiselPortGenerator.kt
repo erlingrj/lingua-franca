@@ -125,10 +125,10 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
         externalOutputs.joinToString("\n", postfix = "\n") { "val ${it.name} = Output(${it.getDataType})" }
 
     private fun generateSwInputs(): String =
-        inputs.joinToString("\n", postfix = "\n") { "val ${it.name} = Input(${it.getSwTokenType})" }
+        inputs.joinToString("\n", postfix = "\n") { "val ${it.name} = ${it.getSwTokenInput}" }
 
     private fun generateSwOutputs(): String =
-        outputs.joinToString("\n", postfix = "\n") { "val ${it.name} = Output(${it.getSwTokenType})" }
+        outputs.joinToString("\n", postfix = "\n") { "val ${it.name} = ${it.getSwTokenOutput}" }
 
     private fun generateGetSwInputs(): String =
         inputs.joinToString(",", prefix = "def getInputs = ArrayBuffer(", postfix = ")"){ it.name }

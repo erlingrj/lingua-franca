@@ -30,6 +30,7 @@ import static org.lflang.ast.ASTUtils.factory;
 import java.util.List;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
@@ -259,6 +260,17 @@ public class AttributeUtils {
     }
   }
 
+  public static void copyArrayAttribute(Port from, Port to) {
+    var attr = findAttributeByName(from, "array");
+    if (attr != null) {
+      Attribute arrayAttr = factory.createAttribute();
+      arrayAttr.setAttrName("array");
+      attr.getAttrParms().forEach(it -> {
+        arrayAttr.getAttrParms().add(EcoreUtil.copy(it));
+      });
+      to.getAttributes().add(arrayAttr);
+    }
+  }
   public static boolean isFpgaTopLevel(Instantiation node) {return findAttributeByName(node, "fpga") != null;}
   public static boolean isArrayPort(Port node) {return findAttributeByName(node, "array") != null;}
   public static boolean isArrayAction(Action node) {return findAttributeByName(node, "array") != null;}

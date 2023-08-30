@@ -28,7 +28,7 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |package reactor
             |import scala.sys.process.Process
             |import java.nio.file.{Files, Paths}
-            |import fpgatidbits.PlatformWrapper.VerilatedTesterWrapper
+            |import fpgatidbits.PlatformWrapper.ZedBoardParams
             |import fpgatidbits.TidbitsMakeUtils._
             |import reactor.util.CharacterizeUtils
             |object LfMain {
@@ -38,7 +38,7 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |    val mainReactorSwIOFunc = () => new lf.${mainReactorName}.${mainReactorName}SwIO()
             |    implicit val globalConfig = GlobalReactorConfig(timeout = ${timeOut})
             |    if (args.length >= 1 && args(0).equals("characterize")) {
-            |      CharacterizeUtils.codesign(() => new CodesignTopReactor(mainReactorFunc, mainReactorSwIOFunc)(globalConfig), targetDir)
+            |      CharacterizeUtils.codesign(() => new CodesignTopReactor(ZedBoardParams, mainReactorFunc, mainReactorSwIOFunc)(globalConfig), targetDir)
             |    } else {
             |      ReactorChisel.mainCodesign(mainReactorFunc, mainReactorSwIOFunc, targetDir, globalConfig)
             |    }

@@ -1,0 +1,69 @@
+target Codesign {
+    build-type: Debug 
+}
+
+reactor Fpga {
+    @array(length=1024)
+    input in: {=UInt(32.W)=}
+
+    output out: {=UInt(32.W)=}
+
+    reaction(in) -> out {=
+        reactionDone := false.B
+        val readPort = lf_get_array(in, 0.U, 1024.U)
+
+        val regSum = RegInit(0.U(32.W))
+        val cnt = RegInit(0.U(11.W))
+
+        readPort.ready := true.B
+        when(readPort.fire) {
+            regSum := regSum + readPort.bits.data
+            cnt := cnt + 1.U
+        }
+
+        when(cnt === 1024.U) {
+            lf_set(out, regSum)
+            reactionDone := true.B
+        }
+    =}
+
+}
+
+reactor Sw {
+    input in: uint32_t
+    output out: uint32_t[1024]
+
+    logical action a
+
+    reaction(startup) -> a {=
+        a.schedule(10ns);
+    =}
+
+    reaction(a) -> out {=
+        std::cout << "Writing to out @" <<get_elapsed_logical_time() <<std::endl;
+        std::array<uint32_t, 1024> arr;
+        for (int i = 0; i<1024; i++) {
+            arr[i] = i;
+        }
+        out.set(std::move(arr));
+    =}
+
+    reaction(in) {=
+        std::cout <<"Got "<<*in.get() <<" @ " <<get_elapsed_logical_time() <<std::endl;
+        if(*in.get() != 523776) {
+            reactor::log::Error() << "expected: " <<523776;
+            exit(1);
+        }
+    =}
+}
+
+
+main reactor {
+    @fpga
+    fpga = new Fpga()
+
+    sw = new Sw()
+
+    sw.out-> fpga.in
+    fpga.out -> sw.in
+}

@@ -65,6 +65,23 @@ val Port.getDataType: String
 val Port.getUnconnectedNamePrefix: String
     get() = "${(this.eContainer() as Reactor).name}_${name}"
 
+val Port.getSwTokenInput: String
+    get() {
+        if (isArrayPort(this)) {
+            return "new SwArrayTokenInput($getDataType)"
+        } else {
+            return "new SwSingleTokenInput($getDataType)"
+        }
+    }
+val Port.getSwTokenOutput: String
+    get() {
+        if (isArrayPort(this)) {
+            return "new SwArrayTokenOutput($getDataType)"
+        } else {
+            return "new SwSingleTokenOutput($getDataType)"
+        }
+    }
+
 val Port.getSwTokenType: String
     get() = "new SwSingleToken($getDataType)"
 val Port.getTokenType: String

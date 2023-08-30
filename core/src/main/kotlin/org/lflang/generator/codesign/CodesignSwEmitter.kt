@@ -41,7 +41,7 @@ class CodesignSwEmitter(
             |${generateTarget()}
             |${generateImports()}
             |${generatePreamble()}
-            |${generateReactor()}
+            |${generateReactors()}
         """.trimMargin()
 
         var ret: MutableMap<Path, CodeMap> = HashMap()
@@ -66,13 +66,18 @@ class CodesignSwEmitter(
         return ret
     }
 
+    // FIXME: Fix this mess...
     fun generateTarget(): String {
         val builder = StringBuilder()
         builder.appendLine("target Cpp {")
         builder.appendLine("  cmake-include: \"fpgaLib.cmake\",")
         if (targetConfig.timeout != null) {
-            builder.appendLine("  timeout: ${targetConfig.timeout.time} ${targetConfig.timeout.unit.canonicalName}")
+            builder.appendLine("  timeout: ${targetConfig.timeout.time} ${targetConfig.timeout.unit.canonicalName},")
         }
+        if (targetConfig.cmakeBuildType != null) {
+            builder.appendLine("  build-type: ${targetConfig.cmakeBuildType.name},")
+        }
+
         builder.appendLine("}")
         return builder.toString()
     }
@@ -97,8 +102,14 @@ class CodesignSwEmitter(
         }
         return builder.toString()
     }
-    fun generateReactor(): String {
-        return reactors.joinToString(separator = "\n") {FormattingUtil.render(it, FormattingUtil.DEFAULT_LINE_LENGTH , Target.Chisel, false)}
+    fun generateReactors(): String {
+        var res =  reactors.joinToString(separator = "\n") {FormattingUtil.render(it, FormattingUtil.DEFAULT_LINE_LENGTH , Target.Chisel, false)}
+        // Remove the named main reactors
+        var mainNameRegex = """main reactor (\w+)\(""".toRegex();
+        res = mainNameRegex.replace(res) {matchResult ->
+            matchResult.value.replace(matchResult.groups[1]!!.value, "");
+        }
+        return res;
     }
 
     fun compile() {

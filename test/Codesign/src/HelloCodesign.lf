@@ -12,7 +12,6 @@ reactor Fpga {
     state cnt: {=UInt(32.W)=}
     state inc: {=UInt(32.W)=}
 
-    
     reaction(in) {=
         printf("Got inc=%d\n", lf_get(in))
         lf_write(inc, lf_get(in))
