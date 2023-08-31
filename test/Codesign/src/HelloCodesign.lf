@@ -26,8 +26,8 @@ reactor Fpga {
 }
 
 reactor Sw {
-    input in: uint64_t
-    output out: uint64_t
+    input in: uint32_t
+    output out: uint32_t
 
     logical action a
 
