@@ -1,5 +1,6 @@
 target Codesign {
-    build-type: Debug 
+    build-type: Debug,
+    timeout: 10 usec
 }
 
 reactor Fpga {
@@ -34,13 +35,9 @@ reactor Sw {
     input in: uint32_t[1024]
     output out: uint32_t[1024]
 
-    logical action a
+    timer t(0, 1 usec)
 
-    reaction(startup) -> a {=
-        a.schedule(10ns);
-    =}
-
-    reaction(a) -> out {=
+    reaction(t) -> out {=
         std::cout << "Writing to out @" <<get_elapsed_logical_time() <<std::endl;
         std::array<uint32_t, 1024> arr;
         for (int i = 0; i<1024; i++) {

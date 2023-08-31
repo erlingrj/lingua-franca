@@ -375,6 +375,16 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
                 fpga->set_coordination_shutdownCommand_valid(true);
                 fpga->set_coordination_shutdownCommand_independent(NET != now);
             }
+            
+            // Handle events originating from the FPGA
+            if (a.is_present()) {
+                fire_fpga = true;
+                if (NET != now) {
+                    reactor::log::Error() <<"Fpga Wrapper: Logical action present, but NET != now";
+                    exit(1);
+                }
+            }
+            
             """);
 
         code.pr("if (fire_fpga) {");
