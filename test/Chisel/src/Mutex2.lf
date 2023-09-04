@@ -1,0 +1,48 @@
+/*
+This tests verifies that the first reaction is not executed for a second time until the second reaction
+has finished. This is ensure by a backwards going precedence port.
+*/
+target Chisel {
+    timeout: 2 nsec
+};
+
+reactor Test {
+    timer t (0, 1 nsec)
+
+    state cnt: {=UInt(8.W)=}
+
+    reaction(t) {=
+        printf("One\n")
+        assert(lf_read(cnt) === 0.U)
+        lf_write(cnt, 1.U)
+    =}
+
+    reaction(t) {=
+        printf("Two\n")
+        reactionDone := false.B
+        assert(lf_read(cnt) === 1.U)
+        val cntDown = RegInit(10.U)
+        cntDown := cntDown - 1.U
+        when (cntDown === 0.U) {
+            lf_write(cnt, 3.U)
+            reactionDone := true.B
+        }
+    =}
+    reaction(t) {=
+        printf("Three\n")
+        reactionDone := false.B
+        assert(lf_read(cnt) === 3.U)
+        val cntDown = RegInit(10.U)
+        cntDown := cntDown - 1.U
+        when (cntDown === 0.U) {
+            lf_write(cnt, 0.U)
+            reactionDone := true.B
+        }
+    =}
+}
+
+
+
+main reactor {
+    m = new Test()
+}
