@@ -308,6 +308,7 @@ public class TargetConfig {
   public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
 
   public boolean codesign = false;
+  public String fpgaBoard = "VerilatedTester";
 
   /** Settings related to clock synchronization. */
   public static class ClockSyncOptions {

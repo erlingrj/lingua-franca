@@ -113,7 +113,6 @@ class CodesignSwEmitter(
     }
 
     fun compile() {
-
         val inj = LFStandaloneSetup().createInjectorAndDoEMFRegistration()
         val rs = inj.getInstance(XtextResourceSet::class.java)
         rs.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE)

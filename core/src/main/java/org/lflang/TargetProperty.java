@@ -634,6 +634,14 @@ public enum TargetProperty {
         (config, value, err) -> {
             config.codesign = ASTUtils.toBoolean(value);
         }),
+    FPGABOARD(
+        "fpgaBoard",
+        PrimitiveType.STRING,
+        List.of(Target.Chisel, Target.Codesign),
+        (config) -> ASTUtils.toElement(config.fpgaBoard),
+        (config, value, err) -> {
+            config.fpgaBoard = ASTUtils.elementToSingleString(value);
+        }),
 
   /** Directive to enable tracing. */
   TRACING(

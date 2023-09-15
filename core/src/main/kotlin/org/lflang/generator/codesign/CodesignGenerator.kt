@@ -52,15 +52,17 @@ class CodesignGenerator(
         var lf2lfCodeMapMapSw: MutableMap<Path, CodeMap> = HashMap()
         val swEmitter = CodesignSwEmitter(context, fileConfig,reactors,targetConfig, messageReporter)
         lf2lfCodeMapMapSw.putAll(swEmitter.generateProject())
-        swEmitter.compile()
 
-        // Copy the produced binary to bin directory
-        if (!Files.exists(fileConfig.binPath)) {
-            Files.createDirectories(fileConfig.binPath)
+        // Only do compilation of generated SW project if we are targeting emulation (e.g. we are native)
+        if (targetConfig.fpgaBoard.equals("VerilatedTester")) {
+            swEmitter.compile()
+            // Copy the produced binary to bin directory
+            if (!Files.exists(fileConfig.binPath)) {
+                Files.createDirectories(fileConfig.binPath)
+            }
+            Files.copy(fileConfig.codesignGenPath.resolve("bin/_SwTop"), fileConfig.binPath.resolve(mainReactor.name), StandardCopyOption.REPLACE_EXISTING)
         }
-        Files.copy(fileConfig.codesignGenPath.resolve("bin/_SwTop"), fileConfig.binPath.resolve(mainReactor.name), StandardCopyOption.REPLACE_EXISTING)
     }
-
 
     override fun getTarget() = Target.Codesign
     override fun getTargetTypes(): TargetTypes = ChiselTypes

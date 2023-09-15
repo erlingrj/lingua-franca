@@ -1,0 +1,72 @@
+target Codesign {
+    logging: Debug
+}
+    
+reactor Software {
+    output op1: uint32_t[2048]
+    output op2: uint32_t[2048]
+    input res: uint32_t[2048]
+
+    reaction(startup) -> op1, op2 {=
+        std::array<uint32_t, 2048> arr1;
+        std::array<uint32_t, 2048> arr2;
+        for (int i = 0; i<2048; i++) {
+            arr1[i] = i;
+            arr2[i] = i;
+        }
+        op1.set(std::move(arr1)); 
+        op2.set(std::move(arr2)); 
+    =}
+
+    reaction(res) {=
+        std::cout << "Got response from FPGA" <<std::endl;
+        for (int i = 0; i<2048; i++) {
+            uint32_t exp = i + i;
+            uint32_t recv = (*res.get())[i];
+            if (exp != recv) {
+                reactor::log::Error() <<"idx: "<<i <<" got: " <<recv << " expected: " <<exp;
+                exit(1);
+            }
+        }
+    =}
+}
+
+reactor Accel {
+    @array(length=2048)
+    input op1:{=UInt(32.W)=}
+    @array(length=2048)
+    input op2:{=UInt(32.W)=}
+    @array(length=2048)
+    output res:{=UInt(32.W)=}
+
+    reaction(op1, op2) -> res {=
+        reactionDone := false.B
+        val readPort1 = lf_get_array(op1, 0.U, 2048.U)
+        val readPort2 = lf_get_array(op2, 0.U, 2048.U)
+        val writePort = lf_set_array(res, 0.U, 2048.U)
+
+        val cnt = RegInit(0.U(32.W))
+        val fire = writePort.ready && readPort1.valid && readPort2.valid
+        when(fire) {
+            writePort.valid := true.B
+            readPort1.ready := true.B
+            readPort2.ready := true.B
+
+            writePort.bits.data := readPort1.bits.data + readPort2.bits.data
+            cnt := cnt + 1.U
+        }
+
+        reactionDone := cnt === 2048.U
+    =}
+}
+
+main reactor {
+    sw = new Software()
+    
+    @fpga
+    accel = new Accel()
+
+    sw.op1, sw.op2 -> accel.op1, accel.op2
+    accel.res -> sw.res
+}
+

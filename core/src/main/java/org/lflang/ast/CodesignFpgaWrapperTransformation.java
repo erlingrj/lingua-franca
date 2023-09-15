@@ -23,6 +23,8 @@ package org.lflang.ast;
 import static org.lflang.AttributeUtils.arrayPortLength;
 import static org.lflang.AttributeUtils.copyArrayAttribute;
 import static org.lflang.AttributeUtils.isArrayPort;
+import static org.lflang.AttributeUtils.isEnclave;
+import static org.lflang.AttributeUtils.isExternalPort;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -108,6 +110,9 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
 
         // Duplicate inputs
         for (Input input : fpga.getInputs()) {
+            if (isExternalPort(input)) {
+                continue;
+            }
             Input in = factory.createInput();
             Type type = chiselPortToCppType(input);
             String name = input.getName();
@@ -125,6 +130,9 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
 
         // Duplicate output
         for (Output output : fpga.getOutputs()) {
+            if (isExternalPort(output)) {
+                continue;
+            }
             Output out = factory.createOutput();
             Type type = chiselPortToCppType(output);
             String name = output.getName();

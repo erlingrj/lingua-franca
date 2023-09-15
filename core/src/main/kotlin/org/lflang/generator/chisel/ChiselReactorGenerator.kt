@@ -63,8 +63,8 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
     }
 
     private fun generateDriveDefaultsFlipped(): String = with(PrependOperator) {
-        val inputs = reactor.inputs.joinToString("\n") {"${it.name}.foreach(_.driveDefaultsFlipped())" }
-        val outputs = reactor.outputs.joinToString("\n") {"${it.name}.plugUnusedFromOutside()" }
+        val inputs = reactor.inputs.filterNot{it.isExternal}.joinToString("\n") {"${it.name}.foreach(_.driveDefaultsFlipped())" }
+        val outputs = reactor.outputs.filterNot{it.isExternal}.joinToString("\n") {"${it.name}.plugUnusedFromOutside()" }
         return """
             // Drive all input and ouput ports to default inactive values, from context external to the Reactor.
             def driveDefaultsFlipped(): Unit = {
@@ -74,8 +74,8 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
         """.trimIndent()
     }
     private fun generateDriveDefaults(): String = with(PrependOperator) {
-        val inputs = reactor.inputs.joinToString("\n") {"${it.name}.foreach(_.driveDefaults())" }
-        val outputs = reactor.outputs.joinToString("\n") {"${it.name}.driveDefaults()" }
+        val inputs = reactor.inputs.filterNot{it.isExternal}.joinToString("\n") {"${it.name}.foreach(_.driveDefaults())" }
+        val outputs = reactor.outputs.filterNot{it.isExternal}.joinToString("\n") {"${it.name}.driveDefaults()" }
         return """
             // Drive all input and ouput ports to default inactive values, from context internal within the Reactor.
             def driveDefaults(): Unit = {
@@ -89,8 +89,8 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
         "val ${output.name} = ${output.getWriteMaster}"
 
     private fun generateIO(): String = with(PrependOperator) {
-            val inputs = reactor.inputs.joinToString("\n"){generateIOInput(it)}
-            val outputs = reactor.outputs.joinToString("\n"){generateIOOutput(it)}
+            val inputs = reactor.inputs.filterNot{it.isExternal}.joinToString("\n"){generateIOInput(it)}
+            val outputs = reactor.outputs.filterNot { it.isExternal}.joinToString("\n"){generateIOOutput(it)}
             val driveDefaultsFlipped = generateDriveDefaultsFlipped()
             val driveDefaults = generateDriveDefaults()
         return """

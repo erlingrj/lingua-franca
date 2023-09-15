@@ -273,6 +273,8 @@ public class AttributeUtils {
   }
   public static boolean isFpgaTopLevel(Instantiation node) {return findAttributeByName(node, "fpga") != null;}
   public static boolean isArrayPort(Port node) {return findAttributeByName(node, "array") != null;}
+
+  public static boolean isExternalPort(Port node) {return findAttributeByName(node, "external") != null;}
   public static boolean isArrayAction(Action node) {return findAttributeByName(node, "array") != null;}
   public static int arrayPortLength(EObject node) {
     return Integer.parseInt(getAttributeParameter(findAttributeByName(node, "array"), "length"));

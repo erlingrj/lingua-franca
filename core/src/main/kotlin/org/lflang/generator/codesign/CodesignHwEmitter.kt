@@ -60,6 +60,9 @@ class CodesignHwEmitter(
         if (targetConfig.timeout != null) {
             builder.appendLine("  timeout: ${targetConfig.timeout.time} ${targetConfig.timeout.unit.canonicalName}")
         }
+        if (targetConfig.fpgaBoard != null) {
+            builder.appendLine("  fpgaBoard: ${targetConfig.fpgaBoard}")
+        }
         builder.appendLine("}")
         return builder.toString()
     }
