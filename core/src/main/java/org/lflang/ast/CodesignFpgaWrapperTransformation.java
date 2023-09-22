@@ -309,9 +309,12 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
             platform = initPlatform(vcdTracing);
             fpga = new CodesignTopReactor(platform);
             reactor::log::Info() << "Attached to FPGA Reactor with Signature: " <<hex << fpga->get_signature() <<dec;
+            // Fetch both 32 bit and 64 bit representation of the NET
+            auto NET32 = hwReactorDuration(fpga->get_coordination_nextEventTag());
             auto NET = reactor::Duration(fpga->get_coordination_nextEventTag());
             // Dont schedule anything if the NET=0 as the main reaction is triggered by startup
-            if (NET > 0ns) {
+            // If there are no local events at the FPGA the NET=NEVER (-inf)
+            if (NET32 > 0ns) {
                 a.schedule(NET);
             }
             // Allocate buffers for shared memory ports (i.e. array ports)
@@ -364,13 +367,17 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
     private String generateMainReactionBody() {
         CodeBuilder code = new CodeBuilder();
         code.pr("""
-                // Early exit if shutdown trigger already handled.
-                if(shutdown_handled) return;
-                auto now = get_elapsed_logical_time();
-                auto NET = reactor::Duration(fpga->get_coordination_nextEventTag());
-                reactor::log::Debug() <<"Fpga Wrapper: Triggered @ " <<now;
-                auto fire_fpga = false;
-                """);
+            // Early exit if shutdown trigger already handled.
+            if(shutdown_handled) return;
+            // Get the current time, both 32 bit and 64 bit representation.
+            auto now = get_elapsed_logical_time();
+            auto now32 = hwReactorDuration(static_cast<std::int32_t>(now.count()));
+            // Fetch NET (both 32 and 64 bit representations)
+            auto NET32 = hwReactorDuration(fpga->get_coordination_nextEventTag());
+            auto NET = reactor::Duration(fpga->get_coordination_nextEventTag() +  (now.count() >> 32));
+            reactor::log::Debug() <<"Fpga Wrapper: Triggered @ " <<now;
+            auto fire_fpga = false;
+            """);
 
         code.prComment("Check all the inputs and forward any data");
         for (Input in: inputMap.keySet()) {
@@ -398,36 +405,34 @@ public class CodesignFpgaWrapperTransformation implements AstTransformation {
         code.pr("if (fire_fpga) {");
         code.indent();
         code.prComment("Set the TAG");
-        code.pr("fpga->set_coordination_tagAdvanceGrant(now.count());");
+        code.pr("fpga->set_coordination_tagAdvanceGrant(now32.count());");
         code.prComment("Fire the FPGA");
         code.pr("fpga->set_cmd(WRITE);");
         code.prComment("Block until FPGA is finished with this tag");
-        code.pr("while(reactor::Duration(fpga->get_coordination_logicalTagComplete()) != now) {}");
+        code.pr("while(hwReactorDuration(fpga->get_coordination_logicalTagComplete()) != now32) {}");
 
         code.prComment("Forward any outputs from the FPGA");
         for (Output out: outputMap.keySet()) {
             code.pr(generateMainReactionOutputCheck(out));
         }
 
-        code.prComment("Inform the FPGA that we have consumed its events");
-        code.pr("fpga->set_cmd(READ);");
-
-        code.prComment("Lookup next event originating from the FPGA");
-        code.pr("NET = reactor::Duration(fpga->get_coordination_nextEventTag());");
-        code.pr("if (NET < reactor::Duration::max() && NET > 0ns) {");
-        code.indent();
-        code.pr("auto NET_duration = NET - now;");
-        code.pr("reactor::log::Debug() <<\"Fpga Wrapper: Scheduling next FPGA event @ \" <<NET <<\" in \" <<NET_duration;");
-        code.pr("a.schedule(NET_duration);");
-        code.unindent();
-        code.pr("}");
-        code.unindent();
-        code.pr("} else {");
-        code.indent();
-        code.pr("reactor::log::Debug() <<\"Fpga Wrapper: No events for the FPGA\";");
-        code.unindent();
-        code.pr("}");
-        code.pr("reactor::log::Debug() <<\"Fpga Wrapper: Finished @ \" <<now;");
+        code.pr("""
+            //Inform the FPGA that we have consumed its events
+            fpga->set_cmd(READ);
+            //Lookup next event originating from the FPGA
+            auto NET32 = hwReactorDuration(fpga->get_coordination_nextEventTag());
+            auto NET = reactor::Duration(fpga->get_coordination_nextEventTag() +  (now.count() >> 32));
+            if (NET32 < hwReactorDuration::max() && NET32 > 0ns) {
+                auto NET_duration = NET - now;
+                reactor::log::Debug() <<"Fpga Wrapper: Scheduling next FPGA event @ " <<NET <<" in " <<NET_duration;
+                a.schedule(NET_duration);
+            } else {
+                reactor::log::Debug() <<"Fpga Wrapper: No events for the FPGA";
+            }
+            }
+                        
+            reactor::log::Debug() <<"Fpga Wrapper: Finished @ " <<now;
+            """);
         return code.toString();
     }
 

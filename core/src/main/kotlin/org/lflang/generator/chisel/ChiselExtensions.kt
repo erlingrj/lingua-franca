@@ -132,7 +132,7 @@ val Port.getUnconnectedInputPort: String
         }
     }
 val Port.getInwardConnectionFactory: String
-    get() = "new InputPortInwardConnectionFactory(${getDataType}, ${getTokenType})"
+    get() = "new InputPortArbiterInwardConnectionFactory(${getDataType}, ${getTokenType})"
 
 val Port.isExternal: Boolean
     get() = findAttributeByName(this, "external") != null
@@ -151,9 +151,9 @@ val Input.getInwardConnName: String
 val Port.getInputPort: String
     get() {
         if (isArrayPort(this)) {
-            return "InputPortArray"
+            return "InputPortArbiterArray"
         } else {
-            return "InputPortSingleValue"
+            return "InputPortArbiterSingleValue"
         }
     }
 // Given an Input port. Return the list of reactions which is triggered or sourcing that port.
@@ -175,9 +175,9 @@ val Input.getTriggeredReactions: List<Reaction>
 val Port.getOutputPort: String
     get() {
         if (isArrayPort(this)) {
-            return "OutputPortArray"
+            return "OutputPortArbiterArray"
         } else {
-            return "OutputPortSingleValue"
+            return "OutputPortArbiterSingleValue"
         }
     }
 
@@ -312,11 +312,11 @@ val Action.getReadMaster: String
 val Action.getInputPort: String
     get() {
         if (isArrayAction(this)) {
-            return "Module(new InputPortArray(InputPortConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
+            return "Module(new InputPortArbiterArray(InputPortArbiterConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
         } else if (type == null){
-            return "Module(new InputPortPure(InputPortConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
+            return "Module(new InputPortArbiterPure(InputPortArbiterConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
         } else {
-            return "Module(new InputPortSingleValue(InputPortConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
+            return "Module(new InputPortArbiterSingleValue(InputPortArbiterConfig(${getDataType}, ${getTokenType},${getTriggeredReactions.size})))"
         }
     }
 

@@ -275,7 +275,7 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
         val builder = StringBuilder()
         val pName = "${input}"
         builder.append("""
-            val $pName = new ${input.getOutputPort}(new OutputPortConfig(${input.getDataType}, ${input.getTokenType}))
+            val $pName = new ${input.getOutputPort}(new OutputPortArbiterConfig(${input.getDataType}, ${input.getTokenType}))
             outPorts += $pName
         """.trimIndent())
 

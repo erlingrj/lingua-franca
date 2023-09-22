@@ -7,17 +7,19 @@ target Chisel {
 };
 
 reactor Test {
-    timer t (0, 1 nsec)
+    timer t1 (0, 1 nsec)
+    timer t2 (0, 1 nsec)
+    timer t3 (0, 1 nsec)
 
     state cnt: {=UInt(8.W)=}
 
-    reaction(t) {=
+    reaction(t1) {=
         printf("One\n")
         assert(lf_read(cnt) === 0.U)
         lf_write(cnt, 1.U)
     =}
 
-    reaction(t) {=
+    reaction(t2) {=
         printf("Two\n")
         reactionDone := false.B
         assert(lf_read(cnt) === 1.U)
@@ -28,7 +30,7 @@ reactor Test {
             reactionDone := true.B
         }
     =}
-    reaction(t) {=
+    reaction(t3) {=
         printf("Three\n")
         reactionDone := false.B
         assert(lf_read(cnt) === 3.U)

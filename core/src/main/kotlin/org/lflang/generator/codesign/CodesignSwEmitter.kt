@@ -88,6 +88,8 @@ class CodesignSwEmitter(
                 #include "platform.h"
                 #include "CodesignTopReactor.hpp"
                 enum FpgaCmd {NOP=0, WRITE, READ, RESET, TERMINATE};
+                // Define a chrono duration for the 32 bit signed tags used by the hardware.
+                using hwReactorDuration = std::chrono::duration<std::int32_t, std::nano>;
             =}
         """.trimIndent()
 

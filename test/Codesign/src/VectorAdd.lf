@@ -1,6 +1,4 @@
-target Codesign {
-    logging: Debug
-}
+target Codesign
     
 reactor Software {
     output op1: uint32_t[2048]

@@ -65,7 +65,6 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |import scala.sys.process.Process
             |import java.nio.file.{Files, Paths}
             |import reactor.util.CharacterizeUtils
-            |import fpgatidbits
             |object LfMain {
             |  def main(args: Array[String]): Unit = {
             |    val targetDir = "build"
