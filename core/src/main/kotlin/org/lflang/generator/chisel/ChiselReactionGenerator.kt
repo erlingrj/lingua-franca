@@ -94,7 +94,7 @@ class ChiselReactionGenerator(
     }
 
     private fun generateClassDefinition(r: Reaction): String =
-        "class ${r.getClassName}(c: ReactionConfig) extends Reaction(c)"
+        "class ${r.getClassName}(c: ReactionConfig)(implicit gc: GlobalReactorConfig) extends Reaction(c)"
 
     private fun generateInputPortFromChildIO(r: Reaction, child: Instantiation, p: Port): String {
         // Store all child reactors and the ports in a dictionary so we can bring them into scope

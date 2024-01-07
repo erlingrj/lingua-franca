@@ -31,6 +31,7 @@ class CodesignSwEmitter(
 
     val lfFilePath = fileConfig.swSrcPath.resolve("_SwTop.lf")
     val cmakeFilePath = fileConfig.swSrcPath.resolve("fpgaLib.cmake")
+    var topSwReactors = main.instantiations.filter {AttributeUtils.findAttributeByName(it, "fpga") == null}.map {it.reactor}
 
     fun generateProject(): Map<Path, CodeMap> {
         Files.createDirectories(fileConfig.swSrcPath)
@@ -41,7 +42,8 @@ class CodesignSwEmitter(
             |${generateTarget()}
             |${generateImports()}
             |${generatePreamble()}
-            |${generateReactors()}
+            |${generateReactors(topSwReactors)}
+            |${generateMain()}
         """.trimMargin()
 
         var ret: MutableMap<Path, CodeMap> = HashMap()
@@ -70,7 +72,9 @@ class CodesignSwEmitter(
     fun generateTarget(): String {
         val builder = StringBuilder()
         builder.appendLine("target Cpp {")
-        builder.appendLine("  cmake-include: \"fpgaLib.cmake\",")
+        targetConfig.cmakeIncludes
+        val cmakeIncludes = listOf("\"fpgaLib.cmake\"") + targetConfig.cmakeIncludes.map {"\"$it\""}
+        builder.appendLine("  cmake-include: [${cmakeIncludes.joinToString(separator = ",")}],")
         if (targetConfig.timeout != null) {
             builder.appendLine("  timeout: ${targetConfig.timeout.time} ${targetConfig.timeout.unit.canonicalName},")
         }
@@ -104,14 +108,27 @@ class CodesignSwEmitter(
         }
         return builder.toString()
     }
-    fun generateReactors(): String {
-        var res =  reactors.joinToString(separator = "\n") {FormattingUtil.render(it, FormattingUtil.DEFAULT_LINE_LENGTH , Target.Chisel, false)}
+
+    fun generateReactors(reactors: List<Reactor>): String {
+        val builder = StringBuilder()
+        for (r in reactors) {
+            for (i in r.instantiations) {
+                builder.appendLine(generateReactors(listOf(i.reactor)))
+            }
+            builder.appendLine(FormattingUtil.render(r, FormattingUtil.DEFAULT_LINE_LENGTH , Target.CPP, false))
+        }
+        return builder.toString()
+    }
+
+    fun generateMain(): String {
+        val builder = StringBuilder()
+        builder.appendLine(FormattingUtil.render(main, FormattingUtil.DEFAULT_LINE_LENGTH , Target.CPP, false))
         // Remove the named main reactors
         var mainNameRegex = """main reactor (\w+)\(""".toRegex();
-        res = mainNameRegex.replace(res) {matchResult ->
+        val reactorString = mainNameRegex.replace(builder.toString()) {matchResult ->
             matchResult.value.replace(matchResult.groups[1]!!.value, "");
         }
-        return res;
+        return reactorString
     }
 
     fun compile() {

@@ -6,8 +6,6 @@ import org.lflang.lf.Reactor
 import org.lflang.reactor
 
 class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: ChiselFileConfig, val targetConfig: TargetConfig, val messageReporter: MessageReporter) {
-
-
     fun generateSource(): String {
         if (targetConfig.codesign) {
             return generateSourceCodesign()
@@ -33,11 +31,11 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |import reactor.util.CharacterizeUtils
             |object LfMain {
             |  def main(args: Array[String]): Unit = {
+            |    implicit val globalConfig = GlobalReactorConfig(timeout = ${timeOut}, standalone=false, clockPeriod = Time.nsec(${targetConfig.clockPeriod.toNanoSeconds()}))
             |    val targetDir = if (args.length == 1) args(0) else "build"
             |    val mainReactorFunc = () => new lf.${mainReactorName}.${mainReactorName}()
             |    val mainReactorSwIOFunc = () => new lf.${mainReactorName}.${mainReactorName}SwIO()
             |    val platformInst = platformMap("${targetConfig.fpgaBoard}")
-            |    implicit val globalConfig = GlobalReactorConfig(timeout = ${timeOut}, standalone=false)
             |    if (args.length >= 1 && args(0).equals("characterize")) {
             |      CharacterizeUtils.codesign(() => new CodesignTopReactor(ZedBoardParams, mainReactorFunc, mainReactorSwIOFunc)(globalConfig), targetDir)
             |    } else {

@@ -39,8 +39,7 @@ class CodesignHwEmitter(
         val hwCode = """
             |// This file is code-generated DO NOT EDIT.
             |${generateTarget()}
-            |${generateImports()}
-            |${generateReactor()}
+            |${generateReactors(inst.reactor)}
             |${generateMain()}
         """.trimMargin()
 
@@ -58,27 +57,28 @@ class CodesignHwEmitter(
         builder.appendLine("target Chisel {")
         builder.appendLine("  codesign: true,")
         if (targetConfig.timeout != null) {
-            builder.appendLine("  timeout: ${targetConfig.timeout.time} ${targetConfig.timeout.unit.canonicalName}")
+            builder.appendLine("  timeout: ${targetConfig.timeout.time} ${targetConfig.timeout.unit.canonicalName},")
         }
         if (targetConfig.fpgaBoard != null) {
-            builder.appendLine("  fpgaBoard: ${targetConfig.fpgaBoard}")
+            builder.appendLine("  fpgaBoard: ${targetConfig.fpgaBoard},")
+        }
+        if (targetConfig.clockPeriod != null) {
+            builder.appendLine("  clock-period: ${targetConfig.clockPeriod.time} ${targetConfig.clockPeriod.unit.canonicalName},")
         }
         builder.appendLine("}")
         return builder.toString()
     }
 
-    // Copy over the import statements that are used by the FPGA reactor
-    fun generateImports(): String {
+    fun generateReactors(reactor: Reactor): String {
         val builder = StringBuilder()
-        var imports = (main.eContainer() as Model).imports.toList()
-        for (import in imports) {
-            if (import.reactorClasses.filter{ ASTUtils.doesInstantiationReferenceReactor(inst,it)}.isNotEmpty()) {
-                builder.appendLine("import ${import.reactorClasses.joinToString(separator = ",")} from ${import.importURI}")
-            }
+        for (i in reactor.instantiations) {
+            builder.appendLine(generateReactors(i.reactor))
         }
+        builder.appendLine(FormattingUtil.render(reactor, FormattingUtil.DEFAULT_LINE_LENGTH , Target.Chisel, false))
         return builder.toString()
     }
-    fun generateReactor(): String {
+    fun generateInstantiatedReactorDefinitions(): String {
+
         return FormattingUtil.render(inst.reactor, FormattingUtil.DEFAULT_LINE_LENGTH , Target.Chisel, false)
     }
     fun generateMain(): String {

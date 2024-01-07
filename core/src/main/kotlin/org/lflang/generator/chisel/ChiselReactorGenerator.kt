@@ -121,7 +121,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, private val fileConfi
             |${reactions.generateDeclarations()} 
             |
             |// Reactor declaration
-            |class ${reactor.name} extends Reactor {
+            |class ${reactor.name}(implicit gc: GlobalReactorConfig) extends Reactor {
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
         ${" |  "..triggers.generateDeclarations()}
