@@ -37,7 +37,7 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |    val mainReactorSwIOFunc = () => new lf.${mainReactorName}.${mainReactorName}SwIO()
             |    val platformInst = platformMap("${targetConfig.fpgaBoard}")
             |    if (args.length >= 1 && args(0).equals("characterize")) {
-            |      CharacterizeUtils.codesign(() => new CodesignTopReactor(ZedBoardParams, mainReactorFunc, mainReactorSwIOFunc)(globalConfig), targetDir)
+            |      CharacterizeUtils.codesign(() => new CodesignTopReactor(ZedBoardParams, mainReactorFunc, mainReactorSwIOFunc)(globalConfig), globalConfig.clockPeriod, targetDir)
             |    } else {
             |      ReactorChisel.mainCodesign(platformInst, mainReactorFunc, mainReactorSwIOFunc, targetDir, globalConfig)
             |    }
@@ -66,10 +66,10 @@ class ChiselMainFileGenerator(private val mainReactor: Reactor, val fileConfig: 
             |object LfMain {
             |  def main(args: Array[String]): Unit = {
             |    val targetDir = "build"
-            |    val mainReactorFunc = () => new lf.${mainReactor.name}.${mainReactor.name}()
             |    implicit val globalConfig = GlobalReactorConfig(timeout = ${timeOut}, standalone=true)
+            |    val mainReactorFunc = () => new lf.${mainReactor.name}.${mainReactor.name}()
             |    if (args.length == 1 && args(0).equals("characterize")) {
-            |       CharacterizeUtils.standalone(() => new StandaloneTopReactor(mainReactorFunc), targetDir)
+            |       CharacterizeUtils.standalone(() => new StandaloneTopReactor(mainReactorFunc), globalConfig.clockPeriod, targetDir)
             |    } else {
             |       ReactorChisel.mainStandalone(mainReactorFunc, targetDir, "${mainReactor.name}", globalConfig)
             |    }
