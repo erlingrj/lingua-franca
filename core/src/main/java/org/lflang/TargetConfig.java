@@ -309,6 +309,7 @@ public class TargetConfig {
 
   public boolean codesign = false;
   public String fpgaBoard = "VerilatedTester";
+  public TimeValue clockPeriod = new TimeValue(1, TimeUnit.NANO);
 
   /** Settings related to clock synchronization. */
   public static class ClockSyncOptions {

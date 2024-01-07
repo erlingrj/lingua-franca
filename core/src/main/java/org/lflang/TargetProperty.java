@@ -642,6 +642,17 @@ public enum TargetProperty {
         (config, value, err) -> {
             config.fpgaBoard = ASTUtils.elementToSingleString(value);
         }),
+    CLOCKPERIOD(
+        "clock-period",
+        PrimitiveType.TIME_VALUE,
+        List.of(Target.Chisel, Target.Codesign),
+        (config) -> ASTUtils.toElement(config.clockPeriod),
+        (config, value, err) -> {
+            config.clockPeriod = ASTUtils.toTimeValue(value);
+        },
+        (config, value, err) -> {
+            config.clockPeriod = ASTUtils.toTimeValue(value);
+        }),
 
   /** Directive to enable tracing. */
   TRACING(
